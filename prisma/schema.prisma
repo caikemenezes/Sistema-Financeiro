@@ -1,0 +1,190 @@
+// Prisma schema — Sistema Financeiro Familiar
+// Etapa 1: Receitas, Contas do Mês, Cartão de Crédito, Metas e Prioridades, Família e Filhos, Dívidas
+// Ver documentação completa no cofre Obsidian "Finaças memoria/Sistema Financeiro"
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum StatusRecebimento {
+  PREVISTO
+  RECEBIDO
+}
+
+enum StatusConta {
+  PENDENTE
+  PAGA
+  ATRASADA
+}
+
+enum TipoConta {
+  FIXA
+  VARIAVEL
+}
+
+enum Prioridade {
+  URGENTE
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+enum StatusMeta {
+  PLANEJADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum ClassificacaoCompra {
+  ESSENCIAL
+  IMPORTANTE
+  SUPERFLUA
+}
+
+enum StatusDivida {
+  EM_DIA
+  ATRASADA
+  QUITADA
+}
+
+model FamiliaMembro {
+  id             String    @id @default(cuid())
+  nome           String
+  parentesco     String
+  dataNascimento DateTime?
+  observacoes    String?
+  createdAt      DateTime  @default(now())
+
+  compras      CompraCartao[]
+  necessidades Necessidade[]
+  metas        Meta[]
+}
+
+model Receita {
+  id              String            @id @default(cuid())
+  nome            String
+  tipo            String
+  valorPrevisto   Float
+  valorRecebido   Float?
+  dataPrevista    DateTime
+  dataRecebimento DateTime?
+  categoria       String?
+  recorrente      Boolean           @default(false)
+  contaBancaria   String?
+  status          StatusRecebimento @default(PREVISTO)
+  observacao      String?
+  createdAt       DateTime          @default(now())
+}
+
+model ContaMes {
+  id               String         @id @default(cuid())
+  nome             String
+  categoria        String
+  subcategoria     String?
+  valor            Float
+  vencimento       DateTime
+  formaPagamento   String?
+  contaBancaria    String?
+  tipo             TipoConta   @default(FIXA)
+  recorrenteMensal Boolean     @default(true)
+  status           StatusConta @default(PENDENTE)
+  dataPagamento    DateTime?
+  observacoes      String?
+  createdAt        DateTime    @default(now())
+}
+
+model Cartao {
+  id            String   @id @default(cuid())
+  nome          String
+  banco         String?
+  limiteTotal   Float
+  diaFechamento Int
+  diaVencimento Int
+  createdAt     DateTime @default(now())
+
+  compras CompraCartao[]
+}
+
+model CompraCartao {
+  id              String              @id @default(cuid())
+  cartaoId        String
+  cartao          Cartao              @relation(fields: [cartaoId], references: [id])
+  descricao       String
+  categoria       String
+  valorTotal      Float
+  numeroParcelas  Int                 @default(1)
+  dataCompra      DateTime
+  familiaMembroId String?
+  familiaMembro   FamiliaMembro?      @relation(fields: [familiaMembroId], references: [id])
+  classificacao   ClassificacaoCompra @default(IMPORTANTE)
+  createdAt       DateTime            @default(now())
+
+  parcelas Parcela[]
+}
+
+model Parcela {
+  id            String       @id @default(cuid())
+  compraId      String
+  compra        CompraCartao @relation(fields: [compraId], references: [id])
+  numero        Int
+  valor         Float
+  mesReferencia DateTime
+  paga          Boolean      @default(false)
+  pagaEm        DateTime?
+}
+
+model Meta {
+  id                    String         @id @default(cuid())
+  nome                  String
+  tipo                  String
+  categoria             String?
+  valorEstimado         Float
+  valorGuardado         Float          @default(0)
+  dataDesejada          DateTime?
+  prioridade            Prioridade     @default(MEDIA)
+  status                StatusMeta     @default(PLANEJADA)
+  familiaMembroId       String?
+  familiaMembro         FamiliaMembro? @relation(fields: [familiaMembroId], references: [id])
+  observacoes           String?
+  linksPesquisados      String?
+  orcamentosEncontrados String?
+  createdAt             DateTime       @default(now())
+}
+
+model Necessidade {
+  id              String         @id @default(cuid())
+  item            String
+  familiaMembroId String?
+  familiaMembro   FamiliaMembro? @relation(fields: [familiaMembroId], references: [id])
+  categoria       String
+  prioridade      Prioridade     @default(MEDIA)
+  valorEstimado   Float
+  mesPlanejado    DateTime
+  status          StatusMeta     @default(PLANEJADA)
+  createdAt       DateTime       @default(now())
+}
+
+model Divida {
+  id                      String       @id @default(cuid())
+  nome                    String
+  credor                  String
+  tipo                    String
+  valorOriginal           Float
+  valorAtual              Float
+  juros                   Float?
+  numeroParcelas          Int?
+  valorParcela            Float?
+  vencimento              DateTime?
+  parcelasPagas           Int          @default(0)
+  status                  StatusDivida @default(EM_DIA)
+  prioridade              Prioridade   @default(MEDIA)
+  possibilidadeNegociacao Boolean      @default(false)
+  observacoes             String?
+  createdAt               DateTime     @default(now())
+}
