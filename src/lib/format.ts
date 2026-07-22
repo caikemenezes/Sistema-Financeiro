@@ -15,6 +15,10 @@ export function parseDateInput(value: FormDataEntryValue | null): Date {
   return new Date(`${String(value)}T00:00:00Z`);
 }
 
+export function toDateInputValue(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
 export function parseMesParam(mes: string | undefined): Date {
   if (mes && /^\d{4}-\d{2}$/.test(mes)) {
     const [ano, mesNum] = mes.split("-").map(Number);

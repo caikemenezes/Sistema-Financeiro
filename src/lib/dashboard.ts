@@ -23,29 +23,31 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
   const [
     receitasDoMes,
     contasDoMes,
-    parcelasDoMes,
     metasAtivas,
+    prioridadesAtivas,
     dividasAtivas,
+    investimentos,
     receitasRecebidasNoMes,
     contasPagasNoMes,
-    parcelasPagasNoMes,
   ] = await Promise.all([
     prisma.receita.findMany({ where: { dataPrevista: { gte: inicio, lt: fim } } }),
     prisma.contaMes.findMany({ where: { vencimento: { gte: inicio, lt: fim } } }),
-    prisma.parcela.findMany({ where: { mesReferencia: { gte: inicio, lt: fim } } }),
     prisma.meta.findMany({
       where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
       orderBy: [{ prioridade: "asc" }, { createdAt: "desc" }],
       include: { familiaMembro: true },
     }),
+    prisma.necessidade.findMany({
+      where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+    }),
     prisma.divida.findMany({ where: { status: { not: "QUITADA" } } }),
+    prisma.investimento.findMany(),
     prisma.receita.findMany({
       where: { status: "RECEBIDO", dataRecebimento: { gte: inicio, lt: fim } },
     }),
     prisma.contaMes.findMany({
       where: { status: "PAGA", dataPagamento: { gte: inicio, lt: fim } },
     }),
-    prisma.parcela.findMany({ where: { paga: true, pagaEm: { gte: inicio, lt: fim } } }),
   ]);
 
   const rendaPrevista = receitasDoMes.reduce((s, r) => s + r.valorPrevisto, 0);
@@ -65,16 +67,13 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
   const totalPendente = totalContas - totalPago;
   const totalAtrasado = contasAtrasadas.reduce((s, c) => s + c.valor, 0);
 
-  const totalCartaoMes = parcelasDoMes.reduce((s, p) => s + p.valor, 0);
-  const totalCartaoPago = parcelasDoMes
-    .filter((p) => p.paga)
-    .reduce((s, p) => s + p.valor, 0);
-
   const totalGuardadoMetas = metasAtivas.reduce((s, m) => s + m.valorGuardado, 0);
+  const totalGuardadoPrioridades = prioridadesAtivas.reduce((s, p) => s + p.valorGuardado, 0);
   const totalDividasRestante = dividasAtivas.reduce((s, d) => s + d.valorAtual, 0);
+  const totalInvestimentos = investimentos.reduce((s, i) => s + i.valorAtual, 0);
 
-  const saldoDisponivel = rendaRecebida - totalPago - totalCartaoPago;
-  const saldoPrevistoFimDoMes = rendaPrevista - totalContas - totalCartaoMes;
+  const saldoDisponivel = rendaRecebida - totalPago;
+  const saldoPrevistoFimDoMes = rendaPrevista - totalContas;
 
   const contasProximasVencimento = contasDoMes.filter(
     (c) => c.status === "PENDENTE" && c.vencimento >= hoje && c.vencimento <= em7dias
@@ -86,6 +85,23 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
     where: { mesPlanejado: { gte: inicio, lt: fim }, status: { not: "CONCLUIDA" } },
     include: { familiaMembro: true },
   });
+
+  // Lembretes de vencimento (independem do mês sendo visualizado no dashboard)
+  const inicioHojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
+  const em3DiasUTC = new Date(inicioHojeUTC.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const fimJanelaLembretes = new Date(inicioHojeUTC.getTime() + 4 * 24 * 60 * 60 * 1000);
+  const contasParaLembrete = await prisma.contaMes.findMany({
+    where: {
+      status: "PENDENTE",
+      vencimento: { gte: inicioHojeUTC, lt: fimJanelaLembretes },
+    },
+  });
+  const contasVencendoHoje = contasParaLembrete.filter(
+    (c) => c.vencimento.getTime() === inicioHojeUTC.getTime()
+  );
+  const contasVencendoEm3Dias = contasParaLembrete.filter(
+    (c) => c.vencimento.getTime() === em3DiasUTC.getTime()
+  );
 
   // Fluxo de caixa acumulado do mês, dia a dia, até hoje (ou até o fim, se for mês passado)
   const ultimoDiaDoMes = new Date(
@@ -102,13 +118,9 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
     acumReceitas += receitasRecebidasNoMes
       .filter((r) => r.dataRecebimento!.getUTCDate() === dia)
       .reduce((s, r) => s + (r.valorRecebido ?? 0), 0);
-    acumDespesas +=
-      contasPagasNoMes
-        .filter((c) => c.dataPagamento!.getUTCDate() === dia)
-        .reduce((s, c) => s + c.valor, 0) +
-      parcelasPagasNoMes
-        .filter((p) => p.pagaEm!.getUTCDate() === dia)
-        .reduce((s, p) => s + p.valor, 0);
+    acumDespesas += contasPagasNoMes
+      .filter((c) => c.dataPagamento!.getUTCDate() === dia)
+      .reduce((s, c) => s + c.valor, 0);
     pontosFluxo.push({
       dia,
       receitas: acumReceitas,
@@ -143,14 +155,16 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
     contasPagasCount: contasPagas.length,
     contasPendentesCount: contasPendentes.length,
     contasAtrasadasCount: contasAtrasadas.length,
-    totalCartaoMes,
-    totalCartaoPago,
     totalGuardadoMetas,
+    totalGuardadoPrioridades,
     totalDividasRestante,
+    totalInvestimentos,
     saldoDisponivel,
     saldoPrevistoFimDoMes,
     contasAtrasadas,
     contasProximasVencimento,
+    contasVencendoHoje,
+    contasVencendoEm3Dias,
     dividasProximasVencimento,
     necessidadesDoMes,
     metasEmAndamento,

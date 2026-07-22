@@ -17,12 +17,14 @@ export async function criarMembro(formData: FormData) {
   });
 
   revalidatePath("/familia");
+  revalidatePath("/prioridades");
 }
 
 export async function excluirMembro(formData: FormData) {
   const id = String(formData.get("id"));
   await prisma.familiaMembro.delete({ where: { id } });
   revalidatePath("/familia");
+  revalidatePath("/prioridades");
 }
 
 export async function criarNecessidade(formData: FormData) {
@@ -40,6 +42,7 @@ export async function criarNecessidade(formData: FormData) {
   });
 
   revalidatePath("/familia");
+  revalidatePath("/prioridades");
 }
 
 export async function concluirNecessidade(formData: FormData) {
@@ -49,10 +52,12 @@ export async function concluirNecessidade(formData: FormData) {
     data: { status: "CONCLUIDA" },
   });
   revalidatePath("/familia");
+  revalidatePath("/prioridades");
 }
 
 export async function excluirNecessidade(formData: FormData) {
   const id = String(formData.get("id"));
   await prisma.necessidade.delete({ where: { id } });
   revalidatePath("/familia");
+  revalidatePath("/prioridades");
 }

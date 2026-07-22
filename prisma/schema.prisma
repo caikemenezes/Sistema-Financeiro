@@ -41,12 +41,6 @@ enum StatusMeta {
   CANCELADA
 }
 
-enum ClassificacaoCompra {
-  ESSENCIAL
-  IMPORTANTE
-  SUPERFLUA
-}
-
 enum StatusDivida {
   EM_DIA
   ATRASADA
@@ -61,7 +55,6 @@ model FamiliaMembro {
   observacoes    String?
   createdAt      DateTime  @default(now())
 
-  compras      CompraCartao[]
   necessidades Necessidade[]
   metas        Meta[]
 }
@@ -83,7 +76,7 @@ model Receita {
 }
 
 model ContaMes {
-  id               String         @id @default(cuid())
+  id               String      @id @default(cuid())
   nome             String
   categoria        String
   subcategoria     String?
@@ -97,46 +90,6 @@ model ContaMes {
   dataPagamento    DateTime?
   observacoes      String?
   createdAt        DateTime    @default(now())
-}
-
-model Cartao {
-  id            String   @id @default(cuid())
-  nome          String
-  banco         String?
-  limiteTotal   Float
-  diaFechamento Int
-  diaVencimento Int
-  createdAt     DateTime @default(now())
-
-  compras CompraCartao[]
-}
-
-model CompraCartao {
-  id              String              @id @default(cuid())
-  cartaoId        String
-  cartao          Cartao              @relation(fields: [cartaoId], references: [id])
-  descricao       String
-  categoria       String
-  valorTotal      Float
-  numeroParcelas  Int                 @default(1)
-  dataCompra      DateTime
-  familiaMembroId String?
-  familiaMembro   FamiliaMembro?      @relation(fields: [familiaMembroId], references: [id])
-  classificacao   ClassificacaoCompra @default(IMPORTANTE)
-  createdAt       DateTime            @default(now())
-
-  parcelas Parcela[]
-}
-
-model Parcela {
-  id            String       @id @default(cuid())
-  compraId      String
-  compra        CompraCartao @relation(fields: [compraId], references: [id])
-  numero        Int
-  valor         Float
-  mesReferencia DateTime
-  paga          Boolean      @default(false)
-  pagaEm        DateTime?
 }
 
 model Meta {
@@ -155,6 +108,33 @@ model Meta {
   linksPesquisados      String?
   orcamentosEncontrados String?
   createdAt             DateTime       @default(now())
+
+  cotacoes         MetaCotacao[]
+  itensNecessarios MetaItemNecessario[]
+}
+
+model MetaCotacao {
+  id         String   @id @default(cuid())
+  metaId     String
+  meta       Meta     @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  item       String
+  fornecedor String
+  valor      Float
+  link       String?
+  escolhida  Boolean  @default(false)
+  observacao String?
+  createdAt  DateTime @default(now())
+}
+
+model MetaItemNecessario {
+  id            String   @id @default(cuid())
+  metaId        String
+  meta          Meta     @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  nome          String
+  valorEstimado Float
+  concluido     Boolean  @default(false)
+  observacao    String?
+  createdAt     DateTime @default(now())
 }
 
 model Necessidade {
@@ -162,9 +142,11 @@ model Necessidade {
   item            String
   familiaMembroId String?
   familiaMembro   FamiliaMembro? @relation(fields: [familiaMembroId], references: [id])
+  pessoaNome      String?
   categoria       String
   prioridade      Prioridade     @default(MEDIA)
   valorEstimado   Float
+  valorGuardado   Float          @default(0)
   mesPlanejado    DateTime
   status          StatusMeta     @default(PLANEJADA)
   createdAt       DateTime       @default(now())
@@ -187,4 +169,39 @@ model Divida {
   possibilidadeNegociacao Boolean      @default(false)
   observacoes             String?
   createdAt               DateTime     @default(now())
+}
+
+model Investimento {
+  id                     String    @id @default(cuid())
+  nome                   String
+  objetivo               String
+  instituicao            String?
+  tipo                   String?
+  valorAplicado          Float
+  valorAtual             Float
+  aporteMensal           Float?
+  dataUltimoAporte       DateTime?
+  prazo                  DateTime?
+  liquidez               String?
+  rentabilidadeInformada String?
+  observacoes            String?
+  createdAt              DateTime  @default(now())
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  createdAt DateTime @default(now())
+
+  sessoes Sessao[]
+}
+
+model Sessao {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  expiraEm  DateTime
+  createdAt DateTime @default(now())
 }

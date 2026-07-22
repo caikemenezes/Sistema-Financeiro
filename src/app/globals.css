@@ -9,7 +9,7 @@
   --cor-fundo-cartao-alt: #1c1b26;
   --cor-texto: #f5f5f6;
   --cor-texto-suave: #96959f;
-  --cor-borda: rgba(255, 255, 255, 0.08);
+  --cor-borda: rgba(255, 255, 255, 0.16);
   --cor-tabela-cabecalho: #1c1b26;
 
   /* Marca: dourado */
@@ -48,6 +48,44 @@
   --grafico-6: #199e70; /* água */
 }
 
+/* Tema claro (opcional, via Configurações) — mesma paleta categórica dos
+   gráficos (revalidada contra fundo branco com o skill dataviz), só os tons
+   de superfície/texto/status trocam. Ver decisão no Obsidian ("Dashboard"). */
+html[data-tema="claro"] {
+  --cor-fundo: #f6f5f1;
+  --cor-fundo-cartao: #ffffff;
+  --cor-fundo-cartao-alt: #f1f0ea;
+  --cor-texto: #201f28;
+  --cor-texto-suave: #6b6975;
+  --cor-borda: rgba(20, 18, 10, 0.12);
+  --cor-tabela-cabecalho: #f1f0ea;
+
+  --cor-primaria: #a67c00;
+  --cor-primaria-clara: #c79a02;
+  --cor-primaria-hover: #8a6800;
+  --cor-primaria-texto: #221b00;
+  --dourado-texto: #8a6800;
+  --dourado-fundo: rgba(166, 124, 0, 0.12);
+  --dourado-linha: #a67c00;
+
+  --cor-sucesso-fundo: #e3f6ec;
+  --cor-sucesso-texto: #0f7a4c;
+  --cor-alerta-fundo: #fdf3d9;
+  --cor-alerta-texto: #8a5d05;
+  --cor-perigo-fundo: #fbe4e4;
+  --cor-perigo-texto: #b42318;
+  --cor-info-fundo: #e4ecfc;
+  --cor-info-texto: #2451b5;
+}
+
+html[data-tema="claro"] body {
+  background:
+    radial-gradient(900px 500px at 15% -10%, rgba(166, 124, 0, 0.06), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, rgba(166, 124, 0, 0.04), transparent 55%),
+    var(--cor-fundo);
+  background-attachment: fixed;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -77,16 +115,24 @@ a {
 .app-shell {
   display: flex;
   min-height: 100%;
+  gap: 1.25rem;
+  padding: 1.25rem;
 }
 
 .sidebar {
   width: 236px;
   flex-shrink: 0;
   padding: 1.5rem 1rem;
-  border-right: 1px solid var(--cor-borda);
+  border: 1px solid var(--cor-borda);
+  border-radius: 20px;
   background: var(--cor-fundo-cartao);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 1.25rem;
+  align-self: flex-start;
+  height: calc(100vh - 2.5rem);
 }
 
 .nav {
@@ -175,12 +221,68 @@ a {
   outline-offset: 1px;
 }
 
+/* Campo editável dentro de célula de tabela — discreto até o usuário interagir */
+
+.campo-tabela {
+  width: auto;
+  min-width: 6.5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cor-texto);
+}
+
+.campo-tabela:hover {
+  border-color: var(--cor-borda);
+}
+
+.campo-tabela:focus {
+  outline: none;
+  border-color: var(--cor-primaria);
+  background: var(--cor-fundo-cartao-alt);
+}
+
 .campo-checkbox {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
   color: var(--cor-texto-suave);
+}
+
+.campo-checkbox input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 2px solid var(--cor-borda);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.campo-checkbox input[type="checkbox"]:checked {
+  border-color: var(--dourado-linha);
+  box-shadow: 0 0 0 2px var(--dourado-linha);
+}
+
+.campo-checkbox input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--dourado-linha);
+  outline-offset: 2px;
+}
+
+/* Cada item de uma lista vira seu próprio bloco (ex: itens do Simulador) */
+
+.item-bloco {
+  padding: 0.65rem 0.9rem;
+  background: var(--cor-fundo-cartao-alt);
+  border-radius: 14px;
+  border: 1px solid var(--cor-borda);
 }
 
 .botao {
@@ -192,11 +294,13 @@ a {
   background: var(--gradiente-dourado);
   color: var(--cor-primaria-texto);
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 6px 16px rgba(232, 185, 35, 0.22);
 }
 
 .botao:hover {
   filter: brightness(1.06);
+  transform: scale(1.05);
 }
 
 .botao-abrange-linha {
@@ -206,6 +310,18 @@ a {
 .botao-pequeno {
   padding: 0.4rem 0.75rem;
   font-size: 0.8rem;
+}
+
+.botao-secundario {
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--cor-texto);
+  box-shadow: none;
+  border: 1px solid var(--cor-borda);
+}
+
+.botao-secundario:hover {
+  filter: none;
+  background: var(--cor-fundo-cartao);
 }
 
 /* Ações em formato de link (dentro de tabelas/listas) */
@@ -264,6 +380,14 @@ a {
 
 .tabela tbody tr + tr {
   border-top: 1px solid var(--cor-borda);
+}
+
+.tabela tbody tr:nth-child(odd) {
+  background: var(--cor-fundo-cartao);
+}
+
+.tabela tbody tr:nth-child(even) {
+  background: var(--cor-fundo-cartao-alt);
 }
 
 .tabela-vazia {
@@ -469,23 +593,26 @@ a {
   font-weight: 500;
   text-decoration: none;
   color: var(--cor-texto-suave);
+  transform-origin: left center;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .nav-link:hover {
   background: var(--cor-fundo-cartao-alt);
   color: var(--cor-texto);
+  transform: scale(1.04);
 }
 
 .nav-link-ativo {
-  background: var(--gradiente-dourado);
-  color: var(--cor-primaria-texto);
+  background: linear-gradient(135deg, rgba(232, 185, 35, 0.24), rgba(232, 185, 35, 0.06));
+  color: var(--dourado-texto);
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(232, 185, 35, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(232, 185, 35, 0.35), 0 8px 20px rgba(232, 185, 35, 0.12);
 }
 
 .nav-link-ativo:hover {
-  background: var(--gradiente-dourado);
-  color: var(--cor-primaria-texto);
+  background: linear-gradient(135deg, rgba(232, 185, 35, 0.28), rgba(232, 185, 35, 0.08));
+  color: var(--dourado-texto);
 }
 
 .nav-link-desabilitado {
@@ -559,6 +686,45 @@ a {
   gap: 0.75rem;
 }
 
+.filtro-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filtro-aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo-cartao);
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.filtro-aba:hover {
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--cor-texto);
+}
+
+.filtro-aba-ativa,
+.filtro-aba-ativa:hover {
+  background: var(--gradiente-dourado);
+  border-color: transparent;
+  color: var(--cor-primaria-texto);
+  font-weight: 600;
+}
+
+.filtro-aba-contagem {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
 .seletor-periodo {
   display: flex;
   align-items: center;
@@ -580,6 +746,7 @@ a {
   border: 1px solid var(--cor-borda);
   background: var(--cor-fundo-cartao);
   cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
   color: var(--cor-texto-suave);
   border-radius: 999px;
   flex-shrink: 0;
@@ -588,6 +755,7 @@ a {
 .botao-icone:hover {
   background: var(--cor-fundo-cartao-alt);
   color: var(--cor-texto);
+  transform: scale(1.08);
 }
 
 .sino-wrap {
@@ -617,20 +785,23 @@ a {
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 1.1rem;
-  border: none;
+  border: 1px solid var(--cor-borda);
   border-radius: 999px;
-  background: var(--gradiente-dourado);
-  color: var(--cor-primaria-texto);
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--cor-texto);
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: 0 6px 16px rgba(232, 185, 35, 0.22);
 }
 
 .botao-dourado:hover {
-  filter: brightness(1.06);
+  background: var(--gradiente-dourado);
+  color: var(--cor-primaria-texto);
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(232, 185, 35, 0.28);
 }
 
 /* ===== Cards de estatística com ícone ===== */
@@ -639,35 +810,20 @@ a {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.6rem;
 }
 
-.stat-icone-dourado {
-  background: var(--dourado-fundo);
-  color: var(--dourado-texto);
-}
-
-.stat-icone-sucesso {
-  background: var(--cor-sucesso-fundo);
-  color: var(--cor-sucesso-texto);
-}
-
-.stat-icone-alerta {
-  background: var(--cor-alerta-fundo);
-  color: var(--cor-alerta-texto);
-}
-
-.stat-icone-perigo {
-  background: var(--cor-perigo-fundo);
-  color: var(--cor-perigo-texto);
-}
-
+.stat-icone-dourado,
+.stat-icone-sucesso,
+.stat-icone-alerta,
+.stat-icone-perigo,
 .stat-icone-info {
-  background: var(--cor-info-fundo);
-  color: var(--cor-info-texto);
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--dourado-texto);
 }
 
 .stat-rodape {
@@ -879,6 +1035,7 @@ a {
   gap: 0.7rem;
   padding: 0.7rem;
   border-radius: 10px;
+  border: 1px solid transparent;
   text-decoration: none;
   color: inherit;
 }
@@ -927,6 +1084,13 @@ a {
   opacity: 0.85;
 }
 
+.alerta-card-valor {
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .meta-progresso-item {
   padding: 0.6rem 0;
 }
@@ -952,4 +1116,398 @@ a {
   font-size: 0.75rem;
   color: var(--cor-texto-suave);
   white-space: nowrap;
+}
+
+.meta-progresso-item-anel {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.meta-progresso-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+/* ===== Barra horizontal compacta (Próximos Vencimentos) ===== */
+
+.item-lista-rica-com-barra {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.item-lista-rica-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.barra-horizontal-trilho {
+  width: calc(100% - 2.1rem - 0.7rem);
+  height: 5px;
+  border-radius: 999px;
+  background: var(--cor-fundo-cartao-alt);
+  overflow: hidden;
+  margin-left: calc(2.1rem + 0.7rem);
+}
+
+.barra-horizontal-preenchida {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradiente-dourado);
+}
+
+/* ===== Banner de notificações do navegador ===== */
+
+.banner-notificacoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo-cartao-alt);
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+}
+
+/* ===== Chip de perfil (cabeçalho) ===== */
+
+.perfil-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0.9rem 0.3rem 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-fundo-cartao);
+  flex-shrink: 0;
+}
+
+.perfil-chip-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--dourado-fundo);
+  color: var(--dourado-texto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.perfil-chip-nome {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.perfil-chip-sub {
+  margin: 0;
+  font-size: 0.66rem;
+  color: var(--cor-texto-suave);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+/* ===== Linha "hero" do dashboard (destaque + watchlist + resumo) ===== */
+
+.hero-grade {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .hero-grade {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cartao-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(232, 185, 35, 0.28);
+  padding: 1.3rem;
+  background: radial-gradient(120% 140% at 12% 0%, rgba(232, 185, 35, 0.32), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 40%),
+    var(--cor-fundo-cartao);
+  box-shadow: 0 20px 45px rgba(232, 185, 35, 0.12), 0 12px 28px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.cartao-hero-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.cartao-hero-rotulo {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+}
+
+.cartao-hero-valor {
+  margin: 0.3rem 0 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cartao-hero-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+}
+
+.cartao-hero-sub strong {
+  color: var(--cor-texto);
+}
+
+.cartao-hero-selo {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--cor-borda);
+  white-space: nowrap;
+}
+
+.cartao-cta {
+  border-radius: 20px;
+  padding: 1.1rem;
+  background: linear-gradient(160deg, rgba(232, 185, 35, 0.14), rgba(232, 185, 35, 0.015) 65%),
+    var(--cor-fundo-cartao-alt);
+  border: 1px solid var(--cor-borda);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.cartao-cta-titulo {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.cartao-cta-texto {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+  line-height: 1.45;
+}
+
+/* ===== Mini-tiles (resumo rápido, estilo "carteira") ===== */
+
+.mini-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.mini-tile {
+  border-radius: 14px;
+  padding: 0.8rem;
+  background: var(--cor-fundo-cartao-alt);
+  border: 1px solid var(--cor-borda);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mini-tile-icone {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-tile-valor {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mini-tile-rotulo {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--cor-texto-suave);
+}
+
+.mini-tile-rodape {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: -0.1rem;
+}
+
+.selo-delta {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+}
+
+.selo-delta-positivo {
+  background: var(--cor-sucesso-fundo);
+  color: var(--cor-sucesso-texto);
+}
+
+.selo-delta-negativo {
+  background: var(--cor-perigo-fundo);
+  color: var(--cor-perigo-texto);
+}
+
+/* ===== Tooltip interativo do gráfico ===== */
+
+.grafico-tooltip {
+  position: absolute;
+  transform: translate(-50%, -115%);
+  background: var(--cor-fundo-cartao-alt);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  white-space: nowrap;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.grafico-tooltip-data {
+  margin: 0;
+  font-size: 0.68rem;
+  color: var(--cor-texto-suave);
+}
+
+.grafico-tooltip-valor {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.grafico-tooltip-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.grafico-tooltip-linha-destaque {
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.grafico-tooltip-chave {
+  width: 10px;
+  height: 2px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.grafico-tooltip-rotulo {
+  font-size: 0.7rem;
+  color: var(--cor-texto-suave);
+  flex: 1;
+}
+
+.grafico-tooltip-valor-item {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ===== Animação leve nas caixas (cartões, tiles, alertas) ===== */
+
+@keyframes entrada-caixa {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cartao,
+.mini-tile,
+.alerta-card {
+  animation: entrada-caixa 0.45s ease-out;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.cartao:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+  border-color: rgba(232, 185, 35, 0.55);
+}
+
+.cartao-hero:hover {
+  box-shadow: 0 24px 50px rgba(232, 185, 35, 0.18), 0 16px 34px rgba(0, 0, 0, 0.4);
+}
+
+.mini-tile:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: rgba(232, 185, 35, 0.55);
+}
+
+.alerta-card:hover {
+  transform: translateX(3px) scale(1.02);
+  border-color: rgba(232, 185, 35, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartao,
+  .mini-tile,
+  .alerta-card,
+  .botao,
+  .botao-dourado,
+  .botao-icone,
+  .nav-link {
+    animation: none;
+    transition: none;
+  }
+
+  .cartao:hover,
+  .mini-tile:hover,
+  .alerta-card:hover,
+  .botao:hover,
+  .botao-dourado:hover,
+  .botao-icone:hover,
+  .nav-link:hover {
+    transform: none;
+  }
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { criarMeta, aportarMeta, excluirMeta } from "./actions";
@@ -111,7 +112,9 @@ export default async function MetasPage() {
             <div key={meta.id} className="cartao pilha-pequena">
               <div className="linha-flex">
                 <div>
-                  <h3 style={{ margin: 0 }}>{meta.nome}</h3>
+                  <Link href={`/metas/${meta.id}`} style={{ textDecoration: "none" }}>
+                    <h3 style={{ margin: 0 }}>{meta.nome}</h3>
+                  </Link>
                   <p className="texto-suave" style={{ fontSize: "0.8rem", margin: "0.2rem 0 0 0" }}>
                     {meta.tipo}
                     {meta.familiaMembro ? ` · ${meta.familiaMembro.nome}` : ""}
@@ -119,10 +122,15 @@ export default async function MetasPage() {
                     {STATUS_LABEL[meta.status]}
                   </p>
                 </div>
-                <form action={excluirMeta}>
-                  <input type="hidden" name="id" value={meta.id} />
-                  <button className="link-acao link-perigo">Excluir</button>
-                </form>
+                <div className="acoes">
+                  <Link href={`/metas/${meta.id}`} className="link-acao">
+                    Ver detalhes
+                  </Link>
+                  <form action={excluirMeta}>
+                    <input type="hidden" name="id" value={meta.id} />
+                    <button className="link-acao link-perigo">Excluir</button>
+                  </form>
+                </div>
               </div>
 
               <div className="progresso-trilho">

@@ -24,6 +24,23 @@ export async function criarConta(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function editarConta(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  await prisma.contaMes.update({
+    where: { id },
+    data: {
+      nome: String(formData.get("nome")),
+      categoria: String(formData.get("categoria")),
+      valor: parseCurrencyInput(formData.get("valor")),
+      vencimento: parseDateInput(formData.get("vencimento")),
+    },
+  });
+
+  revalidatePath("/contas");
+  revalidatePath("/");
+}
+
 export async function marcarComoPaga(formData: FormData) {
   const id = String(formData.get("id"));
 

@@ -154,6 +154,7 @@ export default async function FamiliaPage() {
                 <th>Filho</th>
                 <th>Prioridade</th>
                 <th>Valor estimado</th>
+                <th>Guardado</th>
                 <th>Mês planejado</th>
                 <th />
               </tr>
@@ -165,7 +166,7 @@ export default async function FamiliaPage() {
                     <strong>{necessidade.item}</strong>
                   </td>
                   <td className="texto-suave">
-                    {necessidade.familiaMembro?.nome ?? "Família"}
+                    {necessidade.familiaMembro?.nome ?? necessidade.pessoaNome ?? "Família"}
                   </td>
                   <td>
                     <span className={`selo ${PRIORIDADE_SELO[necessidade.prioridade]}`}>
@@ -173,6 +174,7 @@ export default async function FamiliaPage() {
                     </span>
                   </td>
                   <td>{formatCurrency(necessidade.valorEstimado)}</td>
+                  <td className="texto-suave">{formatCurrency(necessidade.valorGuardado)}</td>
                   <td>
                     {necessidade.mesPlanejado.toLocaleDateString("pt-BR", {
                       month: "long",
@@ -196,7 +198,7 @@ export default async function FamiliaPage() {
               ))}
               {necessidades.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="tabela-vazia">
+                  <td colSpan={7} className="tabela-vazia">
                     Nenhuma necessidade planejada ainda.
                   </td>
                 </tr>
