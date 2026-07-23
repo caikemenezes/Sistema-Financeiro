@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { criarMeta, aportarMeta, excluirMeta } from "./actions";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +36,17 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function MetasPage() {
+  const usuario = await exigirUsuarioAtual();
   const [metas, membros] = await Promise.all([
     prisma.meta.findMany({
-      where: { status: { not: "CANCELADA" } },
+      where: { familiaId: usuario.familiaId, status: { not: "CANCELADA" } },
       orderBy: [{ prioridade: "asc" }, { dataDesejada: "asc" }],
       include: { familiaMembro: true },
     }),
-    prisma.familiaMembro.findMany({ orderBy: { nome: "asc" } }),
+    prisma.familiaMembro.findMany({
+      where: { familiaId: usuario.familiaId },
+      orderBy: { nome: "asc" },
+    }),
   ]);
 
   return (
@@ -53,6 +59,7 @@ export default async function MetasPage() {
       </div>
 
       <form action={criarMeta} className="cartao form-grade">
+        <InfoIcone texto="Cadastre aqui um objetivo maior — viagem, carro, um convênio médico. Depois clique em 'Ver detalhes' pra comparar cotações e listar os itens que a meta vai precisar." />
         <input name="nome" placeholder="Nome da meta" required className="campo" />
         <select name="tipo" required defaultValue="" className="campo">
           <option value="" disabled>

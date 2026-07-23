@@ -47,6 +47,21 @@ enum StatusDivida {
   QUITADA
 }
 
+model Familia {
+  id        String   @id @default(cuid())
+  nome      String
+  createdAt DateTime @default(now())
+
+  usuarios      Usuario[]
+  receitas      Receita[]
+  contas        ContaMes[]
+  metas         Meta[]
+  necessidades  Necessidade[]
+  dividas       Divida[]
+  investimentos Investimento[]
+  membros       FamiliaMembro[]
+}
+
 model FamiliaMembro {
   id             String    @id @default(cuid())
   nome           String
@@ -54,6 +69,11 @@ model FamiliaMembro {
   dataNascimento DateTime?
   observacoes    String?
   createdAt      DateTime  @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 
   necessidades Necessidade[]
   metas        Meta[]
@@ -73,6 +93,11 @@ model Receita {
   status          StatusRecebimento @default(PREVISTO)
   observacao      String?
   createdAt       DateTime          @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 }
 
 model ContaMes {
@@ -90,6 +115,11 @@ model ContaMes {
   dataPagamento    DateTime?
   observacoes      String?
   createdAt        DateTime    @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 }
 
 model Meta {
@@ -108,6 +138,11 @@ model Meta {
   linksPesquisados      String?
   orcamentosEncontrados String?
   createdAt             DateTime       @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 
   cotacoes         MetaCotacao[]
   itensNecessarios MetaItemNecessario[]
@@ -150,6 +185,11 @@ model Necessidade {
   mesPlanejado    DateTime
   status          StatusMeta     @default(PLANEJADA)
   createdAt       DateTime       @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 }
 
 model Divida {
@@ -169,6 +209,11 @@ model Divida {
   possibilidadeNegociacao Boolean      @default(false)
   observacoes             String?
   createdAt               DateTime     @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 }
 
 model Investimento {
@@ -186,6 +231,11 @@ model Investimento {
   rentabilidadeInformada String?
   observacoes            String?
   createdAt              DateTime  @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 }
 
 model Usuario {
@@ -194,6 +244,11 @@ model Usuario {
   email     String   @unique
   senhaHash String
   createdAt DateTime @default(now())
+
+  familiaId String
+  familia   Familia @relation(fields: [familiaId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
 
   sessoes Sessao[]
 }

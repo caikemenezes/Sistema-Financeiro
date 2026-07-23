@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AnelProgresso } from "@/components/charts";
 import { IconChevronLeft } from "@/components/icons";
+import { InfoIcone } from "@/components/info-icone";
 import {
   atualizarObservacoes,
   adicionarCotacao,
@@ -52,9 +54,10 @@ export default async function MetaDetalhePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const usuario = await exigirUsuarioAtual();
 
   const meta = await prisma.meta.findUnique({
-    where: { id },
+    where: { id, familiaId: usuario.familiaId },
     include: {
       familiaMembro: true,
       cotacoes: { orderBy: { createdAt: "asc" } },
@@ -98,6 +101,7 @@ export default async function MetaDetalhePage({
       </div>
 
       <div className="cartao">
+        <InfoIcone texto="Visão geral da meta: valor estimado, quanto já foi guardado, quanto falta e o progresso. Esses números vêm dos aportes feitos na página de Metas." />
         <div className="linha-flex">
           <div>
             <h1 className="pagina-titulo">{meta.nome}</h1>
@@ -150,6 +154,7 @@ export default async function MetaDetalhePage({
       </div>
 
       <div className="cartao pilha-pequena">
+        <InfoIcone texto="Anotações livres sobre a meta — onde vai ficar, o que precisa resolver antes, qualquer detalhe que ajude a lembrar depois." />
         <h2 className="cartao-titulo">Observações</h2>
         <form action={atualizarObservacoes} className="pilha-pequena">
           <input type="hidden" name="id" value={meta.id} />
@@ -168,6 +173,7 @@ export default async function MetaDetalhePage({
       </div>
 
       <div className="cartao pilha-pequena">
+        <InfoIcone texto="Compare opções pesquisadas pra cada item da meta (ex: hotéis diferentes pra 'Hospedagem') e marque a escolhida. Só as escolhidas entram no total calculado lá embaixo." />
         <div className="linha-flex">
           <h2 className="cartao-titulo">Cotações</h2>
           <p className="texto-suave" style={{ fontSize: "0.85rem" }}>
@@ -258,6 +264,7 @@ export default async function MetaDetalhePage({
       </div>
 
       <div className="cartao pilha-pequena">
+        <InfoIcone texto="Lista do que precisa ser comprado ou resolvido pra meta acontecer, com o valor de cada item. Marque como resolvido conforme for providenciando." />
         <div className="linha-flex">
           <h2 className="cartao-titulo">O que vai precisar</h2>
           <p className="texto-suave" style={{ fontSize: "0.85rem" }}>
@@ -337,6 +344,7 @@ export default async function MetaDetalhePage({
       </div>
 
       <div className="cartao">
+        <InfoIcone texto="Compara o valor estimado que você digitou ao criar a meta com o total calculado a partir das cotações escolhidas e itens necessários — útil pra saber se a estimativa original ainda faz sentido." />
         <div className="linha-flex">
           <div>
             <p className="stat-rotulo">Valor estimado (manual)</p>

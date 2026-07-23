@@ -14,7 +14,6 @@ import {
   IconBarChart,
   IconCalendar,
   IconSliders,
-  IconEngrenagem,
   IconHelpCircle,
   IconWallet,
 } from "@/components/icons";
@@ -29,7 +28,6 @@ const menuPrincipal = [
   { href: "/dividas", label: "Dívidas", Icon: IconAlertTriangle },
   { href: "/investimentos", label: "Investimentos e Reservas", Icon: IconWallet },
   { href: "/relatorios", label: "Relatórios", Icon: IconBarChart },
-  { href: "/configuracoes", label: "Configurações", Icon: IconEngrenagem },
 ];
 
 const desativados = [{ label: "Família e Filhos", Icon: IconUsers }];
@@ -40,12 +38,12 @@ const emBreve = [
   { label: "Ajuda e Suporte", Icon: IconHelpCircle },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ recolhido = false }: { recolhido?: boolean }) {
   const pathname = usePathname();
 
   return (
     <nav>
-      <p className="nav-secao-titulo">Menu principal</p>
+      {!recolhido && <p className="nav-secao-titulo">Menu principal</p>}
       <div className="nav">
         {menuPrincipal.map((item) => {
           const ativo = pathname === item.href;
@@ -54,32 +52,41 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={ativo ? "nav-link nav-link-ativo" : "nav-link"}
+              title={recolhido ? item.label : undefined}
             >
               <item.Icon size={18} />
-              {item.label}
+              {!recolhido && item.label}
             </Link>
           );
         })}
       </div>
 
-      <p className="nav-secao-titulo">Desativado</p>
+      {!recolhido && <p className="nav-secao-titulo">Desativado</p>}
       <div className="nav">
         {desativados.map((item) => (
-          <span key={item.label} className="nav-link-desabilitado">
+          <span key={item.label} className="nav-link-desabilitado" title={recolhido ? item.label : undefined}>
             <item.Icon size={18} />
-            {item.label}
-            <span className="etiqueta-em-breve">desativado</span>
+            {!recolhido && (
+              <>
+                {item.label}
+                <span className="etiqueta-em-breve">desativado</span>
+              </>
+            )}
           </span>
         ))}
       </div>
 
-      <p className="nav-secao-titulo">Em breve</p>
+      {!recolhido && <p className="nav-secao-titulo">Em breve</p>}
       <div className="nav">
         {emBreve.map((item) => (
-          <span key={item.label} className="nav-link-desabilitado">
+          <span key={item.label} className="nav-link-desabilitado" title={recolhido ? item.label : undefined}>
             <item.Icon size={18} />
-            {item.label}
-            <span className="etiqueta-em-breve">em breve</span>
+            {!recolhido && (
+              <>
+                {item.label}
+                <span className="etiqueta-em-breve">em breve</span>
+              </>
+            )}
           </span>
         ))}
       </div>

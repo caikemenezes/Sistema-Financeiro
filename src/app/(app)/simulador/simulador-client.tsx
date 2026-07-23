@@ -3,15 +3,18 @@
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
 import { GraficoBarraAlocacao } from "@/components/charts";
+import { InfoIcone } from "@/components/info-icone";
 
 export type ItemSimulacao = {
   id: string;
   nome: string;
   categoria: string;
   valorSugerido: number;
+  valorParcela?: number;
+  parcelasRestantes?: number;
 };
 
-type ItemEstado = ItemSimulacao & { valor: number; incluido: boolean };
+type ItemEstado = ItemSimulacao & { valor: number; incluido: boolean; parcelas: number };
 
 const CATEGORIAS_PADRAO = ["Contas do Mês", "Dívidas", "Metas", "Prioridades", "Investimentos"];
 
@@ -24,6 +27,14 @@ const COR_POR_CATEGORIA_PADRAO: Record<string, string> = {
 };
 const COR_PERSONALIZADA_PRINCIPAL = "var(--grafico-6)";
 const COR_PERSONALIZADA_OUTRAS = "var(--cor-texto-suave)";
+
+const DESCRICAO_POR_CATEGORIA: Record<string, string> = {
+  "Contas do Mês": "Contas pendentes e atrasadas cadastradas em Contas do Mês. Já vêm marcadas, mas você pode desmarcar ou mudar o valor pra testar cenários.",
+  Dívidas: "Valor da parcela de cada dívida ativa. Use o seletor de parcelas pra simular adiantar mais de uma parcela no mês (ex: 2 parcelas de uma vez). Se uma dívida não tem parcela definida, o valor sugerido é zero — edite manualmente se quiser simular um pagamento.",
+  Metas: "Quanto seria preciso guardar por mês em cada meta pra chegar na data desejada.",
+  Prioridades: "Quanto seria preciso guardar por mês em cada prioridade pra chegar no mês planejado.",
+  Investimentos: "Aporte mensal planejado de cada investimento cadastrado.",
+};
 
 function gerarId(prefixo: string): string {
   return `${prefixo}-${Math.random().toString(36).slice(2, 10)}`;
@@ -48,7 +59,7 @@ function FormularioNovoItem({
   }
 
   return (
-    <form onSubmit={submeter} className="linha-flex" style={{ flexWrap: "nowrap", gap: "0.5rem" }}>
+    <form onSubmit={submeter} className="linha-flex linha-flex-compacta" style={{ gap: "0.5rem" }}>
       <input
         value={nome}
         onChange={(e) => setNome(e.target.value)}
@@ -83,7 +94,7 @@ function FormularioNovaCategoria({ onCriar }: { onCriar: (nome: string) => void 
   }
 
   return (
-    <form onSubmit={submeter} className="cartao linha-flex" style={{ flexWrap: "nowrap", gap: "0.5rem" }}>
+    <form onSubmit={submeter} className="cartao linha-flex linha-flex-compacta" style={{ gap: "0.5rem" }}>
       <input
         value={nome}
         onChange={(e) => setNome(e.target.value)}
@@ -111,6 +122,7 @@ export function SimuladorClient({
       ...item,
       valor: item.valorSugerido,
       incluido: item.valorSugerido > 0,
+      parcelas: 1,
     }))
   );
   const [categoriasPersonalizadas, setCategoriasPersonalizadas] = useState<string[]>([]);
@@ -118,6 +130,16 @@ export function SimuladorClient({
 
   function atualizarValor(id: string, valor: number) {
     setItens((atual) => atual.map((item) => (item.id === id ? { ...item, valor } : item)));
+  }
+
+  function atualizarParcelas(id: string, parcelas: number) {
+    setItens((atual) =>
+      atual.map((item) =>
+        item.id === id && item.valorParcela
+          ? { ...item, parcelas, valor: item.valorParcela * parcelas }
+          : item
+      )
+    );
   }
 
   function alternarIncluido(id: string) {
@@ -133,7 +155,7 @@ export function SimuladorClient({
   function adicionarItem(categoria: string, nome: string, valor: number) {
     setItens((atual) => [
       ...atual,
-      { id: gerarId("item"), nome, categoria, valor, valorSugerido: valor, incluido: true },
+      { id: gerarId("item"), nome, categoria, valor, valorSugerido: valor, incluido: true, parcelas: 1 },
     ]);
   }
 
@@ -154,6 +176,7 @@ export function SimuladorClient({
           ...item,
           valor: item.valorSugerido,
           incluido: item.valorSugerido > 0,
+          parcelas: 1,
         }))
     );
     setCategoriasPersonalizadas([]);
@@ -193,6 +216,7 @@ export function SimuladorClient({
     <div className="pilha">
       <div className="hero-coluna" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <div className="cartao cartao-hero" style={{ minWidth: "260px" }}>
+          <InfoIcone texto="Comece digitando uma renda hipotética (ex: quanto você imagina receber esse mês). Os cartões abaixo recalculam tudo em cima desse valor." />
           <p className="cartao-hero-rotulo">Renda simulada</p>
           <input
             type="number"
@@ -211,6 +235,7 @@ export function SimuladorClient({
         </div>
 
         <div className="cartao cartao-hero" style={{ minWidth: "260px" }}>
+          <InfoIcone texto="Renda simulada menos tudo que está marcado (incluído) nas categorias abaixo. Fica vermelho se você destinar mais do que a renda simulada." />
           <p className="cartao-hero-rotulo">Saldo restante</p>
           <p
             className="cartao-hero-valor"
@@ -225,6 +250,7 @@ export function SimuladorClient({
       </div>
 
       <div className="cartao pilha-pequena">
+        <InfoIcone texto="Barra mostrando como a renda simulada se divide entre as categorias marcadas, mais o que sobra (ou falta, se estourar). Passe o mouse numa fatia pra ver o valor exato." />
         <h2 className="cartao-titulo">Para onde vai a renda simulada</h2>
         <GraficoBarraAlocacao fatias={fatiasAlocacao} total={totalBase} />
       </div>
@@ -276,7 +302,7 @@ export function SimuladorClient({
             )}
 
             {itensDoProjeto.map((item) => (
-              <div key={item.id} className="linha-flex item-bloco" style={{ flexWrap: "nowrap", gap: "0.75rem" }}>
+              <div key={item.id} className="linha-flex item-bloco linha-flex-compacta" style={{ gap: "0.75rem" }}>
                 <label className="campo-checkbox" style={{ flex: 1, minWidth: 0 }}>
                   <input type="checkbox" checked={item.incluido} onChange={() => alternarIncluido(item.id)} />
                   <span style={{ opacity: item.incluido ? 1 : 0.5 }}>{item.nome}</span>
@@ -318,6 +344,7 @@ export function SimuladorClient({
 
         return (
           <div key={categoria} className="cartao pilha-pequena">
+            <InfoIcone texto={DESCRICAO_POR_CATEGORIA[categoria] ?? ""} />
             <div className="linha-flex">
               <h2 className="cartao-titulo">{categoria}</h2>
               <p className="texto-suave" style={{ fontSize: "0.85rem", margin: 0 }}>
@@ -330,11 +357,40 @@ export function SimuladorClient({
             )}
 
             {itensDaCategoria.map((item) => (
-              <div key={item.id} className="linha-flex item-bloco" style={{ flexWrap: "nowrap", gap: "0.75rem" }}>
+              <div key={item.id} className="linha-flex item-bloco linha-flex-compacta" style={{ gap: "0.75rem" }}>
                 <label className="campo-checkbox" style={{ flex: 1, minWidth: 0 }}>
                   <input type="checkbox" checked={item.incluido} onChange={() => alternarIncluido(item.id)} />
                   <span style={{ opacity: item.incluido ? 1 : 0.5 }}>{item.nome}</span>
                 </label>
+                {item.valorParcela && (
+                  <label
+                    className="texto-suave"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      fontSize: "0.8rem",
+                      opacity: item.incluido ? 1 : 0.5,
+                    }}
+                    title="Quantas parcelas pagar de uma vez neste mês"
+                  >
+                    Parcelas
+                    <input
+                      type="number"
+                      min={1}
+                      max={item.parcelasRestantes ?? undefined}
+                      step="1"
+                      value={item.parcelas}
+                      onChange={(e) =>
+                        atualizarParcelas(item.id, Math.max(1, Number(e.target.value) || 1))
+                      }
+                      disabled={!item.incluido}
+                      className="campo campo-tabela"
+                      style={{ width: "3.5rem", textAlign: "center" }}
+                    />
+                    {item.parcelasRestantes && `/${item.parcelasRestantes}`}
+                  </label>
+                )}
                 <input
                   type="number"
                   step="0.01"
@@ -368,6 +424,7 @@ export function SimuladorClient({
 
       {calculado && (
         <div className="cartao pilha-pequena">
+          <InfoIcone texto="Resumo final: quanto sobra ou falta, e a porcentagem da renda que vai pra cada categoria — inclusive projetos personalizados que você criou." />
           <h2 className="cartao-titulo">Resultado da simulação</h2>
 
           <div className="linha-flex">

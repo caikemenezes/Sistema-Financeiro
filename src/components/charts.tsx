@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
 
-type PontoFluxo = { dia: number; receitas: number; despesas: number; saldo: number };
-
 function arredondarTeto(valor: number): number {
   if (valor <= 0) return 100;
   const expoente = Math.floor(Math.log10(valor));
@@ -35,282 +33,6 @@ function caminhoSuave(pontosXY: Array<[number, number]>): string {
     d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
   }
   return d;
-}
-
-export function GraficoFluxoCaixa({ pontos }: { pontos: PontoFluxo[] }) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const teveMovimento = pontos.some((p) => p.receitas > 0 || p.despesas > 0);
-
-  if (!teveMovimento) {
-    return (
-      <div className="item-vazio">Ainda sem receitas ou contas pagas registradas este mês.</div>
-    );
-  }
-
-  const largura = 600;
-  const altura = 210;
-  const padEsq = 46;
-  const padDir = 12;
-  const padTopo = 10;
-  const padBaixo = 22;
-  const largPlot = largura - padEsq - padDir;
-  const altPlot = altura - padTopo - padBaixo;
-
-  const valores = pontos.flatMap((p) => [p.receitas, p.despesas, p.saldo]);
-  const maxBruto = Math.max(...valores, 1);
-  const minBruto = Math.min(0, ...valores);
-  const maxY = arredondarTeto(maxBruto);
-  const minY = minBruto < 0 ? -arredondarTeto(-minBruto) : 0;
-
-  const x = (i: number) => padEsq + (i / (pontos.length - 1)) * largPlot;
-  const y = (v: number) => padTopo + ((maxY - v) / (maxY - minY)) * altPlot;
-
-  const linha = (chave: "receitas" | "despesas" | "saldo") =>
-    caminhoSuave(pontos.map((p, i) => [x(i), y(p[chave])]));
-
-  const area = (chave: "receitas" | "despesas" | "saldo") => {
-    const topo = caminhoSuave(pontos.map((p, i) => [x(i), y(p[chave])]));
-    return `${topo} L ${x(pontos.length - 1)},${y(0)} L ${x(0)},${y(0)} Z`;
-  };
-
-  const nTicks = 4;
-  const ticks = Array.from({ length: nTicks + 1 }, (_, i) => minY + ((maxY - minY) * i) / nTicks);
-
-  const passoRotulo = Math.max(1, Math.round((pontos.length - 1) / 5));
-  const indicesRotulos: number[] = [0];
-  for (let i = passoRotulo; i < pontos.length - 1 - passoRotulo / 2; i += passoRotulo) {
-    indicesRotulos.push(i);
-  }
-  indicesRotulos.push(pontos.length - 1);
-  const rotulosX = indicesRotulos.map((i) => pontos[i]);
-
-  const coresBase = { receitas: "#b6b5bf", despesas: "#726f7d", saldo: "#f5f5f6" } as const;
-  const coresPastel = { receitas: "#a8dab8", despesas: "#eeaeae", saldo: "#e9d18c" } as const;
-  const estaHover = hoverIndex !== null;
-  const corDe = (chave: "receitas" | "despesas" | "saldo") =>
-    estaHover ? coresPastel[chave] : coresBase[chave];
-
-  const ultimo = pontos[pontos.length - 1];
-  const finais = [
-    { chave: "receitas" as const, valor: ultimo.receitas },
-    { chave: "despesas" as const, valor: ultimo.despesas },
-    { chave: "saldo" as const, valor: ultimo.saldo },
-  ].sort((a, b) => y(a.valor) - y(b.valor));
-
-  // Empurra rótulos que colidiriam verticalmente, mantendo o ponto na posição real
-  const rotuloY: number[] = [];
-  finais.forEach((f, i) => {
-    const posicao = y(f.valor);
-    rotuloY.push(i === 0 ? posicao : Math.max(posicao, rotuloY[i - 1] + 13));
-  });
-
-  const larguraTotal = largura + 70;
-
-  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percentX = (e.clientX - rect.left) / rect.width;
-    const alvoX = percentX * larguraTotal;
-    let maisProximo = 0;
-    let menorDistancia = Infinity;
-    pontos.forEach((_, i) => {
-      const distancia = Math.abs(x(i) - alvoX);
-      if (distancia < menorDistancia) {
-        menorDistancia = distancia;
-        maisProximo = i;
-      }
-    });
-    setHoverIndex(maisProximo);
-  };
-
-  const pontoHover = hoverIndex !== null ? pontos[hoverIndex] : null;
-  const variacaoHover =
-    pontoHover && pontos[0].saldo !== 0
-      ? Math.round(((pontoHover.saldo - pontos[0].saldo) / Math.abs(pontos[0].saldo)) * 100)
-      : null;
-
-  return (
-    <div className="grafico-svg-wrap" style={{ position: "relative" }}>
-      <svg
-        viewBox={`0 0 ${larguraTotal} ${altura}`}
-        width="100%"
-        role="img"
-        aria-label="Fluxo de caixa do mês"
-        onMouseMove={handleMove}
-        onMouseLeave={() => setHoverIndex(null)}
-      >
-        <defs>
-          <linearGradient id="areaSaldo" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={corDe("saldo")} stopOpacity={0.16} />
-            <stop offset="100%" stopColor={corDe("saldo")} stopOpacity={0} />
-          </linearGradient>
-          <filter id="brilhoPonto" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        {ticks.map((valorTick, i) => (
-          <g key={i}>
-            <line
-              x1={padEsq}
-              x2={padEsq + largPlot}
-              y1={y(valorTick)}
-              y2={y(valorTick)}
-              stroke="var(--cor-borda)"
-              strokeWidth={1}
-            />
-            <text x={padEsq - 8} y={y(valorTick) + 3} textAnchor="end" className="grafico-eixo-texto">
-              {formatoCompacto(valorTick)}
-            </text>
-          </g>
-        ))}
-
-        {minY < 0 && (
-          <line
-            x1={padEsq}
-            x2={padEsq + largPlot}
-            y1={y(0)}
-            y2={y(0)}
-            stroke="var(--cor-texto-suave)"
-            strokeWidth={1}
-          />
-        )}
-
-        {rotulosX.map((p) => (
-          <text
-            key={p.dia}
-            x={x(pontos.indexOf(p))}
-            y={altura - 6}
-            textAnchor="middle"
-            className="grafico-eixo-texto"
-          >
-            {p.dia === 0 ? "início" : `dia ${p.dia}`}
-          </text>
-        ))}
-
-        <path d={area("saldo")} fill="url(#areaSaldo)" />
-
-        <path
-          d={linha("receitas")}
-          fill="none"
-          stroke={corDe("receitas")}
-          strokeWidth={1.3}
-          strokeOpacity={0.7}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transition: "stroke 0.2s ease" }}
-        />
-        <path
-          d={linha("despesas")}
-          fill="none"
-          stroke={corDe("despesas")}
-          strokeWidth={1.3}
-          strokeOpacity={0.85}
-          strokeDasharray="4 4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transition: "stroke 0.2s ease" }}
-        />
-        <path
-          d={linha("saldo")}
-          fill="none"
-          stroke={corDe("saldo")}
-          strokeWidth={1.6}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          style={{ transition: "stroke 0.2s ease" }}
-        />
-
-        {finais.map((f, i) => (
-          <g key={f.chave}>
-            <circle
-              cx={x(pontos.length - 1)}
-              cy={y(f.valor)}
-              r={4}
-              fill={corDe(f.chave)}
-              stroke="var(--cor-fundo-cartao)"
-              strokeWidth={2}
-              style={{ transition: "fill 0.2s ease" }}
-            />
-            <text
-              x={x(pontos.length - 1) + 8}
-              y={rotuloY[i] + 3}
-              className="grafico-eixo-texto"
-              style={{ fill: "var(--cor-texto-suave)", fontWeight: 500 }}
-            >
-              {formatCurrency(f.valor)}
-            </text>
-          </g>
-        ))}
-
-        {pontoHover && (
-          <g>
-            <line
-              x1={x(hoverIndex!)}
-              x2={x(hoverIndex!)}
-              y1={padTopo}
-              y2={padTopo + altPlot}
-              stroke="var(--cor-texto-suave)"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-            />
-            <circle
-              cx={x(hoverIndex!)}
-              cy={y(pontoHover.saldo)}
-              r={5}
-              fill={corDe("saldo")}
-              stroke="var(--cor-fundo-cartao)"
-              strokeWidth={2}
-              filter="url(#brilhoPonto)"
-            />
-          </g>
-        )}
-      </svg>
-
-      {pontoHover && (
-        <div
-          className="grafico-tooltip"
-          style={{
-            left: `${(x(hoverIndex!) / larguraTotal) * 100}%`,
-            top: `${(y(pontoHover.saldo) / altura) * 100}%`,
-          }}
-        >
-          <p className="grafico-tooltip-data">
-            {pontoHover.dia === 0 ? "Início do mês" : `Dia ${pontoHover.dia}`}
-          </p>
-
-          <div className="grafico-tooltip-linha">
-            <span className="grafico-tooltip-chave" style={{ background: corDe("receitas") }} />
-            <span className="grafico-tooltip-rotulo">Receitas</span>
-            <span className="grafico-tooltip-valor-item">{formatCurrency(pontoHover.receitas)}</span>
-          </div>
-          <div className="grafico-tooltip-linha">
-            <span className="grafico-tooltip-chave" style={{ background: corDe("despesas") }} />
-            <span className="grafico-tooltip-rotulo">Despesas</span>
-            <span className="grafico-tooltip-valor-item">{formatCurrency(pontoHover.despesas)}</span>
-          </div>
-          <div className="grafico-tooltip-linha grafico-tooltip-linha-destaque">
-            <span className="grafico-tooltip-chave" style={{ background: corDe("saldo") }} />
-            <span className="grafico-tooltip-rotulo">Saldo</span>
-            <span className="grafico-tooltip-valor-item">
-              {formatCurrency(pontoHover.saldo)}
-              {variacaoHover !== null && (
-                <span
-                  className={`selo-delta ${variacaoHover >= 0 ? "selo-delta-positivo" : "selo-delta-negativo"}`}
-                  style={{ marginLeft: "0.4rem" }}
-                >
-                  {variacaoHover >= 0 ? "+" : ""}
-                  {variacaoHover}%
-                </span>
-              )}
-            </span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 type PontoMensal = { mes: number; label: string; receitas: number; despesas: number };
@@ -385,6 +107,178 @@ export function GraficoEvolucaoMensal({ pontos }: { pontos: PontoMensal[] }) {
           {formatoCompacto(ultimo.despesas)}
         </text>
       </svg>
+    </div>
+  );
+}
+
+type PontoGasto = { dia: number; valor: number };
+
+/** Linha de gasto acumulado no mês — uma série só (despesas), dia a dia. */
+export function GraficoGastoMensal({ pontos }: { pontos: PontoGasto[] }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const teveGasto = pontos.some((p) => p.valor > 0);
+
+  if (!teveGasto) {
+    return <div className="item-vazio">Ainda sem contas pagas registradas este mês.</div>;
+  }
+
+  const largura = 600;
+  const altura = 210;
+  const padEsq = 46;
+  const padDir = 12;
+  const padTopo = 10;
+  const padBaixo = 22;
+  const largPlot = largura - padEsq - padDir;
+  const altPlot = altura - padTopo - padBaixo;
+
+  const maxY = arredondarTeto(Math.max(...pontos.map((p) => p.valor), 1));
+
+  const x = (i: number) => padEsq + (i / (pontos.length - 1)) * largPlot;
+  const y = (v: number) => padTopo + ((maxY - v) / maxY) * altPlot;
+
+  const linha = caminhoSuave(pontos.map((p, i) => [x(i), y(p.valor)]));
+  const area = `${linha} L ${x(pontos.length - 1)},${y(0)} L ${x(0)},${y(0)} Z`;
+
+  const nTicks = 4;
+  const ticks = Array.from({ length: nTicks + 1 }, (_, i) => (maxY * i) / nTicks);
+
+  const passoRotulo = Math.max(1, Math.round((pontos.length - 1) / 5));
+  const indicesRotulos: number[] = [0];
+  for (let i = passoRotulo; i < pontos.length - 1 - passoRotulo / 2; i += passoRotulo) {
+    indicesRotulos.push(i);
+  }
+  indicesRotulos.push(pontos.length - 1);
+  const rotulosX = indicesRotulos.map((i) => pontos[i]);
+
+  const cor = "var(--dourado-linha)";
+  const ultimo = pontos[pontos.length - 1];
+  const larguraTotal = largura + 70;
+
+  const handleMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percentX = (e.clientX - rect.left) / rect.width;
+    const alvoX = percentX * larguraTotal;
+    let maisProximo = 0;
+    let menorDistancia = Infinity;
+    pontos.forEach((_, i) => {
+      const distancia = Math.abs(x(i) - alvoX);
+      if (distancia < menorDistancia) {
+        menorDistancia = distancia;
+        maisProximo = i;
+      }
+    });
+    setHoverIndex(maisProximo);
+  };
+
+  const pontoHover = hoverIndex !== null ? pontos[hoverIndex] : null;
+
+  return (
+    <div className="grafico-svg-wrap" style={{ position: "relative" }}>
+      <svg
+        viewBox={`0 0 ${larguraTotal} ${altura}`}
+        width="100%"
+        role="img"
+        aria-label="Quanto gastei no mês"
+        onMouseMove={handleMove}
+        onMouseLeave={() => setHoverIndex(null)}
+      >
+        <defs>
+          <linearGradient id="areaGasto" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={cor} stopOpacity={0.22} />
+            <stop offset="100%" stopColor={cor} stopOpacity={0} />
+          </linearGradient>
+          <filter id="brilhoPontoGasto" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="2.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {ticks.map((valorTick, i) => (
+          <g key={i}>
+            <line
+              x1={padEsq}
+              x2={padEsq + largPlot}
+              y1={y(valorTick)}
+              y2={y(valorTick)}
+              stroke="var(--cor-borda)"
+              strokeWidth={1}
+            />
+            <text x={padEsq - 8} y={y(valorTick) + 3} textAnchor="end" className="grafico-eixo-texto">
+              {formatoCompacto(valorTick)}
+            </text>
+          </g>
+        ))}
+
+        {rotulosX.map((p) => (
+          <text
+            key={p.dia}
+            x={x(pontos.indexOf(p))}
+            y={altura - 6}
+            textAnchor="middle"
+            className="grafico-eixo-texto"
+          >
+            {p.dia === 0 ? "início" : `dia ${p.dia}`}
+          </text>
+        ))}
+
+        <path d={area} fill="url(#areaGasto)" />
+        <path d={linha} fill="none" stroke={cor} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+
+        <circle cx={x(pontos.length - 1)} cy={y(ultimo.valor)} r={4} fill={cor} stroke="var(--cor-fundo-cartao)" strokeWidth={2} />
+        <text
+          x={x(pontos.length - 1) + 8}
+          y={y(ultimo.valor) + 3}
+          className="grafico-eixo-texto"
+          style={{ fill: "var(--cor-texto-suave)", fontWeight: 500 }}
+        >
+          {formatCurrency(ultimo.valor)}
+        </text>
+
+        {pontoHover && (
+          <g>
+            <line
+              x1={x(hoverIndex!)}
+              x2={x(hoverIndex!)}
+              y1={padTopo}
+              y2={padTopo + altPlot}
+              stroke="var(--cor-texto-suave)"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+            <circle
+              cx={x(hoverIndex!)}
+              cy={y(pontoHover.valor)}
+              r={5}
+              fill={cor}
+              stroke="var(--cor-fundo-cartao)"
+              strokeWidth={2}
+              filter="url(#brilhoPontoGasto)"
+            />
+          </g>
+        )}
+      </svg>
+
+      {pontoHover && (
+        <div
+          className="grafico-tooltip"
+          style={{
+            left: `${(x(hoverIndex!) / larguraTotal) * 100}%`,
+            top: `${(y(pontoHover.valor) / altura) * 100}%`,
+          }}
+        >
+          <p className="grafico-tooltip-data">
+            {pontoHover.dia === 0 ? "Início do mês" : `Dia ${pontoHover.dia}`}
+          </p>
+          <div className="grafico-tooltip-linha grafico-tooltip-linha-destaque" style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
+            <span className="grafico-tooltip-chave" style={{ background: cor }} />
+            <span className="grafico-tooltip-rotulo">Gasto acumulado</span>
+            <span className="grafico-tooltip-valor-item">{formatCurrency(pontoHover.valor)}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

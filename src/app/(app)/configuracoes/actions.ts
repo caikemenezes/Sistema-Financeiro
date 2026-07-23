@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { hashSenha, verificarSenha, obterUsuarioAtual } from "@/lib/auth";
+import { hashSenha, verificarSenha, exigirUsuarioAtual } from "@/lib/auth";
 
 export async function definirTema(formData: FormData) {
   const tema = String(formData.get("tema")) === "claro" ? "claro" : "escuro";
@@ -19,8 +18,7 @@ export async function alterarSenha(
   _estado: EstadoFormulario,
   formData: FormData
 ): Promise<EstadoFormulario> {
-  const usuario = await obterUsuarioAtual();
-  if (!usuario) redirect("/login");
+  const usuario = await exigirUsuarioAtual();
 
   const senhaAtual = String(formData.get("senhaAtual") || "");
   const novaSenha = String(formData.get("novaSenha") || "");
@@ -44,8 +42,7 @@ export async function convidarFamiliar(
   _estado: EstadoFormulario,
   formData: FormData
 ): Promise<EstadoFormulario> {
-  const usuario = await obterUsuarioAtual();
-  if (!usuario) redirect("/login");
+  const usuario = await exigirUsuarioAtual();
 
   const nome = String(formData.get("nome") || "").trim();
   const email = String(formData.get("email") || "")
@@ -62,7 +59,9 @@ export async function convidarFamiliar(
     return { erro: "Já existe uma conta com esse e-mail." };
   }
 
-  await prisma.usuario.create({ data: { nome, email, senhaHash: hashSenha(senha) } });
+  await prisma.usuario.create({
+    data: { nome, email, senhaHash: hashSenha(senha), familiaId: usuario.familiaId },
+  });
 
   revalidatePath("/configuracoes");
   return { sucesso: `Conta criada para ${nome}.` };

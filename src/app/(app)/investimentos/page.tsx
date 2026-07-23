@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { criarInvestimento, registrarAporte, excluirInvestimento } from "./actions";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +15,9 @@ const OBJETIVOS = [
 ];
 
 export default async function InvestimentosPage() {
+  const usuario = await exigirUsuarioAtual();
   const investimentos = await prisma.investimento.findMany({
+    where: { familiaId: usuario.familiaId },
     orderBy: { createdAt: "desc" },
   });
 
@@ -36,6 +40,7 @@ export default async function InvestimentosPage() {
       </div>
 
       <form action={criarInvestimento} className="cartao form-grade">
+        <InfoIcone texto="Cadastre um investimento ou reserva (CDB, Tesouro, poupança...). Depois use 'Registrar aporte' na tabela pra ir somando valor conforme você guarda dinheiro nele." />
         <input name="nome" placeholder="Nome do investimento" required className="campo" />
         <select name="objetivo" required defaultValue="" className="campo">
           <option value="" disabled>

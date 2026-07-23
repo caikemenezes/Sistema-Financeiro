@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import {
   criarMembro,
@@ -7,6 +8,7 @@ import {
   concluirNecessidade,
   excluirNecessidade,
 } from "./actions";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +45,14 @@ const PRIORIDADE_LABEL: Record<string, string> = {
 };
 
 export default async function FamiliaPage() {
+  const usuario = await exigirUsuarioAtual();
   const [membros, necessidades] = await Promise.all([
-    prisma.familiaMembro.findMany({ orderBy: { nome: "asc" } }),
+    prisma.familiaMembro.findMany({
+      where: { familiaId: usuario.familiaId },
+      orderBy: { nome: "asc" },
+    }),
     prisma.necessidade.findMany({
-      where: { status: { not: "CONCLUIDA" } },
+      where: { familiaId: usuario.familiaId, status: { not: "CONCLUIDA" } },
       orderBy: { mesPlanejado: "asc" },
       include: { familiaMembro: true },
     }),
@@ -62,6 +68,7 @@ export default async function FamiliaPage() {
       </div>
 
       <section className="cartao pilha-pequena">
+        <InfoIcone texto="Cadastre aqui quem faz parte da família — nome, parentesco e data de nascimento. Esses integrantes aparecem como opção em Metas e nas necessidades abaixo." />
         <h2 className="cartao-titulo">Integrantes</h2>
         <form action={criarMembro} className="form-grade">
           <input name="nome" placeholder="Nome" required className="campo" />
@@ -105,6 +112,7 @@ export default async function FamiliaPage() {
       </section>
 
       <section className="cartao pilha-pequena">
+        <InfoIcone texto="Necessidades planejadas por integrante da família (ou geral). Essa mesma lista, com progresso de quanto já foi guardado, também aparece na página Prioridades." />
         <h2 className="cartao-titulo">Lista de necessidades</h2>
         <form action={criarNecessidade} className="form-grade">
           <input name="item" placeholder="Item (ex: Tênis)" required className="campo" />

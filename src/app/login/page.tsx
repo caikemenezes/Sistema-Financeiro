@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { obterUsuarioAtual } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
@@ -8,9 +7,6 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage() {
   const usuarioAtual = await obterUsuarioAtual();
   if (usuarioAtual) redirect("/");
-
-  const totalUsuarios = await prisma.usuario.count();
-  const primeiroAcesso = totalUsuarios === 0;
 
   return (
     <div
@@ -26,14 +22,10 @@ export default async function LoginPage() {
     >
       <div style={{ textAlign: "center" }}>
         <h1 className="pagina-titulo">Sistema Financeiro Familiar</h1>
-        <p className="pagina-subtitulo">
-          {primeiroAcesso
-            ? "Primeiro acesso — crie a conta da família para começar."
-            : "Entre com sua conta para continuar."}
-        </p>
+        <p className="pagina-subtitulo">Entre com sua conta ou crie a sua para começar.</p>
       </div>
 
-      <LoginForm primeiroAcesso={primeiroAcesso} />
+      <LoginForm />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE_SESSAO = "sessao";
@@ -46,6 +47,12 @@ export async function obterUsuarioAtual() {
 
   if (!sessao || sessao.expiraEm < new Date()) return null;
   return sessao.usuario;
+}
+
+export async function exigirUsuarioAtual() {
+  const usuario = await obterUsuarioAtual();
+  if (!usuario) redirect("/login");
+  return usuario;
 }
 
 export async function encerrarSessao() {

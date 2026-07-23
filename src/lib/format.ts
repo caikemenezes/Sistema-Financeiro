@@ -15,6 +15,14 @@ export function parseDateInput(value: FormDataEntryValue | null): Date {
   return new Date(`${String(value)}T00:00:00Z`);
 }
 
+/** Meia-noite UTC do dia informado (hoje, por padrão) — use pra comparar
+ * contra campos de data-sem-hora como "vencimento" (ver parseDateInput);
+ * comparar direto contra `new Date()` faria algo que vence HOJE contar
+ * como atrasado assim que passasse da meia-noite. */
+export function inicioDoDiaUTC(data: Date = new Date()): Date {
+  return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate()));
+}
+
 export function toDateInputValue(value: Date): string {
   return value.toISOString().slice(0, 10);
 }

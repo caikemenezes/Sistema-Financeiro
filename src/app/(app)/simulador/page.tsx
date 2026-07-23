@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { SimuladorClient, type ItemSimulacao } from "./simulador-client";
 
 export const dynamic = "force-dynamic";
@@ -12,20 +13,33 @@ function mesesRestantes(data: Date | null): number | null {
 }
 
 export default async function SimuladorPage() {
+  const usuario = await exigirUsuarioAtual();
   const hoje = new Date();
   const inicioMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1));
   const fimMes = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1));
 
   const [receitasDoMes, contasPendentes, dividasAtivas, metasAtivas, prioridadesAtivas, investimentos] =
     await Promise.all([
-      prisma.receita.findMany({ where: { dataPrevista: { gte: inicioMes, lt: fimMes } } }),
-      prisma.contaMes.findMany({
-        where: { status: { not: "PAGA" }, vencimento: { gte: inicioMes, lt: fimMes } },
+      prisma.receita.findMany({
+        where: { familiaId: usuario.familiaId, dataPrevista: { gte: inicioMes, lt: fimMes } },
       }),
-      prisma.divida.findMany({ where: { status: { not: "QUITADA" } } }),
-      prisma.meta.findMany({ where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } } }),
-      prisma.necessidade.findMany({ where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } } }),
-      prisma.investimento.findMany(),
+      prisma.contaMes.findMany({
+        where: {
+          familiaId: usuario.familiaId,
+          status: { not: "PAGA" },
+          vencimento: { gte: inicioMes, lt: fimMes },
+        },
+      }),
+      prisma.divida.findMany({
+        where: { familiaId: usuario.familiaId, status: { not: "QUITADA" } },
+      }),
+      prisma.meta.findMany({
+        where: { familiaId: usuario.familiaId, status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+      }),
+      prisma.necessidade.findMany({
+        where: { familiaId: usuario.familiaId, status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+      }),
+      prisma.investimento.findMany({ where: { familiaId: usuario.familiaId } }),
     ]);
 
   const rendaInicial = receitasDoMes.reduce((soma, receita) => soma + receita.valorPrevisto, 0);
@@ -42,6 +56,10 @@ export default async function SimuladorPage() {
       nome: divida.nome,
       categoria: "Dívidas" as const,
       valorSugerido: divida.valorParcela ?? 0,
+      valorParcela: divida.valorParcela ?? undefined,
+      parcelasRestantes: divida.numeroParcelas
+        ? Math.max(1, divida.numeroParcelas - divida.parcelasPagas)
+        : undefined,
     })),
     ...metasAtivas.map((meta) => {
       const valorRestante = Math.max(0, meta.valorEstimado - meta.valorGuardado);

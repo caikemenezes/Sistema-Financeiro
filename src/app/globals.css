@@ -12,6 +12,11 @@
   --cor-borda: rgba(255, 255, 255, 0.16);
   --cor-tabela-cabecalho: #1c1b26;
 
+  /* Borda mais forte, branca, só nos cartões com vidro (repouso) — reforça
+     a aparência de borda de vidro sem mexer em --cor-borda (usada em
+     inputs, sidebar etc.) */
+  --vidro-borda: rgba(255, 255, 255, 0.32);
+
   /* Marca: dourado */
   --cor-primaria: #e8b923;
   --cor-primaria-clara: #f0c13a;
@@ -46,6 +51,28 @@
   --grafico-4: #9085e9; /* violeta */
   --grafico-5: #d95926; /* laranja */
   --grafico-6: #199e70; /* água */
+
+  /* Vidro — fundo translúcido + blur o tempo todo (não só no hover); o
+     hover só intensifica (menos opaco, mais blur) */
+  --cartao-fundo-vidro: rgba(22, 21, 29, 0.02);
+  --cartao-alt-fundo-vidro: rgba(28, 27, 38, 0.02);
+  --tile-fundo-vidro: rgba(16, 14, 22, 0.016);
+  --vidro-fundo-hover: rgba(22, 21, 29, 0.01);
+
+  /* Fundo dos "cartão dentro do cartão" (mini-tile/stat-tile) — mais escuro
+     que o cartão que os envolve, pra ficar visualmente "encaixado" nele em
+     vez de se confundir com a mesma cor */
+  --tile-fundo: #100e16;
+
+  /* Rampa monocromática dourada (ordinal, maior gasto → menor) — usada em
+     "Gastos por Categoria"; validada com o skill dataviz (--ordinal) contra
+     o fundo dos cartões (#16151d) */
+  --grafico-dourado-1: #f7e7bf;
+  --grafico-dourado-2: #efd080;
+  --grafico-dourado-3: #e7b840;
+  --grafico-dourado-4: #cc9a19;
+  --grafico-dourado-5: #9a7413;
+  --grafico-dourado-6: #76590f;
 }
 
 /* Tema claro (opcional, via Configurações) — mesma paleta categórica dos
@@ -60,6 +87,10 @@ html[data-tema="claro"] {
   --cor-borda: rgba(20, 18, 10, 0.12);
   --cor-tabela-cabecalho: #f1f0ea;
 
+  /* No claro, "branco" não aparece sobre cartão branco — usa um contorno
+     mais forte na mesma tinta escura pra manter a borda bem visível */
+  --vidro-borda: rgba(20, 18, 10, 0.28);
+
   --cor-primaria: #a67c00;
   --cor-primaria-clara: #c79a02;
   --cor-primaria-hover: #8a6800;
@@ -67,6 +98,21 @@ html[data-tema="claro"] {
   --dourado-texto: #8a6800;
   --dourado-fundo: rgba(166, 124, 0, 0.12);
   --dourado-linha: #a67c00;
+
+  --cartao-fundo-vidro: rgba(255, 255, 255, 0.02);
+  --cartao-alt-fundo-vidro: rgba(241, 240, 234, 0.02);
+  --tile-fundo-vidro: rgba(234, 231, 220, 0.016);
+  --vidro-fundo-hover: rgba(255, 255, 255, 0.01);
+  --tile-fundo: #eae7dc;
+
+  /* Rampa dourada revalidada contra fundo branco (#ffffff) — precisa de tons
+     mais escuros que a versão escura para manter contraste mínimo */
+  --grafico-dourado-1: #edab26;
+  --grafico-dourado-2: #d09011;
+  --grafico-dourado-3: #a5730d;
+  --grafico-dourado-4: #7f580a;
+  --grafico-dourado-5: #5e4108;
+  --grafico-dourado-6: #3d2b05;
 
   --cor-sucesso-fundo: #e3f6ec;
   --cor-sucesso-texto: #0f7a4c;
@@ -82,6 +128,9 @@ html[data-tema="claro"] body {
   background:
     radial-gradient(900px 500px at 15% -10%, rgba(166, 124, 0, 0.06), transparent 60%),
     radial-gradient(700px 500px at 100% 0%, rgba(166, 124, 0, 0.04), transparent 55%),
+    radial-gradient(800px 600px at 88% 45%, rgba(166, 124, 0, 0.035), transparent 60%),
+    radial-gradient(700px 500px at 8% 62%, rgba(166, 124, 0, 0.03), transparent 55%),
+    radial-gradient(900px 600px at 50% 105%, rgba(166, 124, 0, 0.03), transparent 60%),
     var(--cor-fundo);
   background-attachment: fixed;
 }
@@ -98,9 +147,14 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(900px 500px at 15% -10%, rgba(232, 185, 35, 0.07), transparent 60%),
-    radial-gradient(700px 500px at 100% 0%, rgba(232, 185, 35, 0.05), transparent 55%),
-    var(--cor-fundo);
+    linear-gradient(180deg, rgba(10, 10, 15, 0.55) 0%, rgba(10, 10, 15, 0.78) 100%),
+    url("/fundo-financas.webp") var(--cor-fundo);
+  /* "cover" preenche a tela inteira sem repetir (evita a mesma costura que
+     já corrigimos no gradiente); "fixed" recalcula relativo à janela a cada
+     scroll, então nunca precisa "ladrilhar" a imagem ao longo da página */
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
   background-attachment: fixed;
   color: var(--cor-texto);
   font-family: Arial, Helvetica, sans-serif;
@@ -119,20 +173,98 @@ a {
   padding: 1.25rem;
 }
 
+/* Barra superior do celular (só aparece abaixo do breakpoint mobile) — fica
+   fora do fluxo do .app-shell de propósito (position: fixed sempre) pra não
+   virar item extra do flex e bagunçar o layout desktop */
+.topo-mobile {
+  display: none;
+}
+
+/* Fundo escurecido atrás da gaveta do menu no celular */
+.sidebar-fundo-mobile {
+  display: none;
+}
+
+.sidebar-fechar-mobile {
+  display: none;
+}
+
 .sidebar {
   width: 236px;
   flex-shrink: 0;
   padding: 1.5rem 1rem;
-  border: 1px solid var(--cor-borda);
+  border: 1px solid var(--vidro-borda);
   border-radius: 20px;
-  background: var(--cor-fundo-cartao);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  background: var(--cartao-fundo-vidro);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 1.25rem;
   align-self: flex-start;
   height: calc(100vh - 2.5rem);
+  transition: width 0.25s ease, padding 0.25s ease;
+}
+
+.sidebar-recolhida {
+  width: 84px;
+  padding: 1.5rem 0.6rem;
+}
+
+.sidebar-toggle {
+  align-self: flex-end;
+  margin-bottom: 0.9rem;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--vidro-borda);
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--cor-texto-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-toggle:hover {
+  background: var(--dourado-fundo);
+  color: var(--dourado-texto);
+  border-color: rgba(232, 185, 35, 0.4);
+  transform: scale(1.08);
+}
+
+.sidebar-recolhida .sidebar-toggle {
+  align-self: center;
+}
+
+.sidebar-toggle-icone {
+  transition: transform 0.25s ease;
+}
+
+.sidebar-toggle-icone.girado {
+  transform: rotate(180deg);
+}
+
+.sidebar-recolhida .logo-marca {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-recolhida .nav-link,
+.sidebar-recolhida .nav-link-desabilitado {
+  justify-content: center;
+  padding: 0.6rem;
+}
+
+.sidebar-rodape-recolhido {
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .nav {
@@ -182,13 +314,70 @@ a {
 /* Cartões / seções */
 
 .cartao {
-  border: 1px solid var(--cor-borda);
+  position: relative;
+  border: 1px solid var(--vidro-borda);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 40%),
-    var(--cor-fundo-cartao);
+    var(--cartao-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
   border-radius: 18px;
   padding: 1.1rem;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Ícone de informação no canto de um cartão, explicando o que ele faz */
+
+.info-icone-wrapper {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 5;
+}
+
+/* Reserva espaço à direita quando o cartão tem ícone de informação, pra não
+   sobrepor conteúdo que já fica encostado no canto direito (subtotal, selos etc.) */
+.cartao:has(> .info-icone-wrapper) {
+  padding-right: 2.75rem;
+}
+
+.botao-icone-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.botao-icone-info:hover {
+  color: var(--dourado-texto);
+  background: var(--dourado-fundo);
+}
+
+.info-balao {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 15rem;
+  max-width: 65vw;
+  padding: 0.6rem 0.8rem;
+  background: var(--cor-fundo-cartao-alt);
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+  line-height: 1.45;
+  z-index: 20;
 }
 
 .cartao-titulo {
@@ -210,15 +399,32 @@ a {
   width: 100%;
   padding: 0.55rem 0.8rem;
   font-size: 0.9rem;
-  border: 1px solid var(--cor-borda);
+  border: 1px solid var(--vidro-borda);
   border-radius: 10px;
-  background: var(--cor-fundo-cartao-alt);
+  background: var(--tile-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
   color: var(--cor-texto);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
 .campo:focus {
   outline: 2px solid var(--cor-primaria);
   outline-offset: 1px;
+}
+
+.campo:hover {
+  border-color: rgba(232, 185, 35, 0.5);
+}
+
+/* A lista suspensa nativa de <select> não respeita fundo translúcido/blur
+   (é um popup do sistema operacional, não um elemento normal da página) —
+   mas herda a cor de texto clara do .campo, o que deixava texto claro
+   sobre o fundo branco padrão do popup. Fixando fundo/cor sólidos só nas
+   <option>, sem mexer no visual do campo fechado. */
+.campo option {
+  background: var(--cor-fundo-cartao-alt);
+  color: var(--cor-texto);
 }
 
 /* Campo editável dentro de célula de tabela — discreto até o usuário interagir */
@@ -279,10 +485,13 @@ a {
 /* Cada item de uma lista vira seu próprio bloco (ex: itens do Simulador) */
 
 .item-bloco {
+  position: relative;
   padding: 0.65rem 0.9rem;
-  background: var(--cor-fundo-cartao-alt);
+  background: var(--tile-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
   border-radius: 14px;
-  border: 1px solid var(--cor-borda);
+  border: 1px solid var(--vidro-borda);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .botao {
@@ -322,6 +531,16 @@ a {
 .botao-secundario:hover {
   filter: none;
   background: var(--cor-fundo-cartao);
+}
+
+.botao-claro {
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.botao-claro:hover {
+  filter: brightness(0.96);
 }
 
 /* Ações em formato de link (dentro de tabelas/listas) */
@@ -453,6 +672,7 @@ a {
   margin: 0.25rem 0 0 0;
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--dourado-texto);
 }
 
 .stat-positivo {
@@ -511,6 +731,19 @@ a {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+/* Linhas de formulário/item que precisam ficar numa linha só no desktop
+   (input + input + botão lado a lado) — no celular isso não cabe, então
+   quebra pra empilhar em vez de espremer os campos até sumirem */
+.linha-flex-compacta {
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+  .linha-flex-compacta {
+    flex-wrap: wrap;
+  }
 }
 
 .grupo-valores {
@@ -822,7 +1055,8 @@ a {
 .stat-icone-alerta,
 .stat-icone-perigo,
 .stat-icone-info {
-  background: var(--cor-fundo-cartao-alt);
+  background: var(--tile-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
   color: var(--dourado-texto);
 }
 
@@ -830,6 +1064,28 @@ a {
   margin: 0.15rem 0 0 0;
   font-size: 0.72rem;
   color: var(--cor-texto-suave);
+}
+
+/* Grupos de estatística dentro de uma caixa principal (mesmo modelo do
+   "Resumo Rápido"): .stats-tile-grade fica dentro de um .cartao, e cada
+   StatCard usa .stat-tile em vez de .cartao pra não duplicar a borda */
+.stats-tile-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.7rem;
+}
+
+.stat-tile {
+  position: relative;
+  display: block;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: var(--tile-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid var(--vidro-borda);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+  color: inherit;
 }
 
 /* ===== Gráficos ===== */
@@ -981,6 +1237,8 @@ a {
   align-items: center;
   gap: 0.7rem;
   padding: 0.6rem 0;
+  text-decoration: none;
+  color: inherit;
 }
 
 .item-lista-rica + .item-lista-rica {
@@ -1008,6 +1266,11 @@ a {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.item-lista-rica:hover .item-titulo {
+  color: var(--dourado-texto);
 }
 
 .item-subtitulo {
@@ -1092,7 +1355,10 @@ a {
 }
 
 .meta-progresso-item {
+  display: block;
   padding: 0.6rem 0;
+  text-decoration: none;
+  color: inherit;
 }
 
 .meta-progresso-item + .meta-progresso-item {
@@ -1110,6 +1376,11 @@ a {
 .meta-progresso-nome {
   font-size: 0.85rem;
   font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.meta-progresso-item:hover .meta-progresso-nome {
+  color: var(--dourado-texto);
 }
 
 .meta-progresso-valores {
@@ -1218,6 +1489,59 @@ a {
   white-space: nowrap;
 }
 
+/* Menu de perfil (Configurações + Sair) — fica flutuando no canto superior
+   direito no desktop, e dentro da barra fixa do topo no celular. Ver
+   src/components/perfil-menu.tsx */
+.topo-perfil-flutuante {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 30;
+}
+
+.perfil-menu {
+  position: relative;
+}
+
+.perfil-chip-botao {
+  border: 1px solid var(--cor-borda);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.perfil-chip-botao:hover,
+.perfil-chip-botao[aria-expanded="true"] {
+  border-color: rgba(232, 185, 35, 0.5);
+}
+
+.perfil-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 35;
+  min-width: 190px;
+  padding: 0.4rem;
+  border-radius: 14px;
+  border: 1px solid var(--vidro-borda);
+  background: var(--cartao-fundo-vidro);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.perfil-menu-sair {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--cor-perigo-texto);
+}
+
 /* ===== Linha "hero" do dashboard (destaque + watchlist + resumo) ===== */
 
 .hero-grade {
@@ -1247,7 +1571,7 @@ a {
   padding: 1.3rem;
   background: radial-gradient(120% 140% at 12% 0%, rgba(232, 185, 35, 0.32), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 40%),
-    var(--cor-fundo-cartao);
+    var(--cartao-fundo-vidro);
   box-shadow: 0 20px 45px rgba(232, 185, 35, 0.12), 0 12px 28px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
@@ -1300,7 +1624,7 @@ a {
   border-radius: 20px;
   padding: 1.1rem;
   background: linear-gradient(160deg, rgba(232, 185, 35, 0.14), rgba(232, 185, 35, 0.015) 65%),
-    var(--cor-fundo-cartao-alt);
+    var(--cartao-alt-fundo-vidro);
   border: 1px solid var(--cor-borda);
   display: flex;
   flex-direction: column;
@@ -1329,10 +1653,15 @@ a {
 }
 
 .mini-tile {
+  position: relative;
   border-radius: 14px;
   padding: 0.8rem;
-  background: var(--cor-fundo-cartao-alt);
-  border: 1px solid var(--cor-borda);
+  background: var(--tile-fundo-vidro);
+  backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid var(--vidro-borda);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  text-decoration: none;
+  color: inherit;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1464,24 +1793,105 @@ a {
 
 .cartao,
 .mini-tile,
+.stat-tile,
+.item-bloco,
 .alerta-card {
   animation: entrada-caixa 0.45s ease-out;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
+    background-color 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+/* Glass hover: vidro fosco (blur + fundo translúcido) + reflexo diagonal +
+   borda com brilho dourado (rim light), só nos cartões neutros — não no
+   .alerta-card, que usa cor de fundo pra indicar status (crítico/alerta/
+   info) e não pode ser lavado. Referência: efeito "glassmorphism" com
+   reflexo diagonal e brilho na borda, adaptado pra dourado da marca. */
+.cartao::before,
+.mini-tile::before,
+.stat-tile::before,
+.item-bloco::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 226, 150, 0.24) 0%,
+    rgba(255, 226, 150, 0.08) 20%,
+    transparent 42%
+  );
+  opacity: 0.45;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+/* Ruído/grão sutil por cima do vidro — simula a textura de um vidro
+   fosco/jateado (o desfoque do backdrop-filter sozinho fica "liso" demais);
+   gerado por SVG (feTurbulence), sem imagem externa */
+.cartao::after,
+.mini-tile::after,
+.stat-tile::after,
+.item-bloco::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.cartao:hover,
+.mini-tile:hover,
+.stat-tile:hover,
+.item-bloco:hover {
+  background-color: var(--vidro-fundo-hover);
+  backdrop-filter: blur(10px) saturate(130%);
+  border-color: rgba(232, 185, 35, 0.6);
+}
+
+.cartao:hover::before,
+.mini-tile:hover::before,
+.stat-tile:hover::before,
+.item-bloco:hover::before {
+  opacity: 1;
 }
 
 .cartao:hover {
   transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
-  border-color: rgba(232, 185, 35, 0.55);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 232, 170, 0.55),
+    inset 0 0 0 1px rgba(232, 185, 35, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .cartao-hero:hover {
   box-shadow: 0 24px 50px rgba(232, 185, 35, 0.18), 0 16px 34px rgba(0, 0, 0, 0.4);
 }
 
-.mini-tile:hover {
+.mini-tile:hover,
+.stat-tile:hover {
   transform: translateY(-2px) scale(1.03);
-  border-color: rgba(232, 185, 35, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 170, 0.55),
+    inset 0 0 0 1px rgba(232, 185, 35, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* .item-bloco é uma linha de largura total (dentro de uma lista), não um
+   tile quadrado — sem scale/translateY pra não distorcer a linha, só o
+   brilho de borda intensificando como as outras superfícies de vidro */
+.item-bloco:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 170, 0.55),
+    inset 0 0 0 1px rgba(232, 185, 35, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.08),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .alerta-card:hover {
@@ -1492,6 +1902,8 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .cartao,
   .mini-tile,
+  .stat-tile,
+  .item-bloco,
   .alerta-card,
   .botao,
   .botao-dourado,
@@ -1503,11 +1915,217 @@ a {
 
   .cartao:hover,
   .mini-tile:hover,
+  .stat-tile:hover,
+  .item-bloco:hover,
   .alerta-card:hover,
   .botao:hover,
   .botao-dourado:hover,
   .botao-icone:hover,
   .nav-link:hover {
     transform: none;
+  }
+}
+
+/* ===========================================================================
+   Sistema responsivo (celular/tablet) — menu vira gaveta deslizante,
+   estrutura da página empilha em 1 coluna, e no Dashboard os grupos de
+   estatística viram lista simples (mesmo modelo de "Próximos Vencimentos").
+   =========================================================================== */
+
+@media (max-width: 860px) {
+  .app-shell {
+    display: block;
+    padding: 0.85rem;
+  }
+
+  .conteudo {
+    padding: 1rem 0 0 0;
+  }
+
+  /* No celular o menu de perfil já mora dentro da barra fixa do topo
+     (empurrado pra direita) — a versão flutuante do desktop some */
+  .topo-perfil-flutuante {
+    display: none;
+  }
+
+  .topo-mobile-perfil {
+    margin-left: auto;
+  }
+
+  /* Barra fixa no topo com o botão de abrir o menu — some no desktop */
+  .topo-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3.25rem;
+    padding: 0 0.85rem;
+    background: var(--cartao-fundo-vidro);
+    backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid var(--vidro-borda);
+    z-index: 40;
+  }
+
+  .topo-mobile-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  /* Empurra o conteúdo pra baixo da barra fixa */
+  .app-shell::before {
+    content: "";
+    display: block;
+    height: 3.25rem;
+  }
+
+  .sidebar-fundo-mobile {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 45;
+  }
+
+  /* No celular a gaveta é tudo-ou-nada: ignora o estado "recolhido" do
+     desktop (não faz sentido colapsar pra só ícones numa gaveta que já
+     pode ser fechada inteira) e sempre usa a largura cheia do menu */
+  .sidebar,
+  .sidebar.sidebar-recolhida {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(84vw, 300px);
+    height: 100vh;
+    border-radius: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 50;
+    padding: 1.5rem 1rem;
+  }
+
+  .sidebar.sidebar-aberta-mobile {
+    transform: translateX(0);
+  }
+
+  /* O botão de recolher (desktop) não faz sentido no celular; usa o X.
+     (o React já força recolhido=false no mobile, então .sidebar-recolhida
+     nunca deveria ser aplicada aqui — isso é só um cinto de segurança) */
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar-fechar-mobile {
+    display: flex;
+    align-self: flex-end;
+    margin-bottom: 0.9rem;
+    width: 28px;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--vidro-borda);
+    background: var(--cor-fundo-cartao-alt);
+    color: var(--cor-texto-suave);
+    cursor: pointer;
+  }
+
+  /* Grades de página inteiras: 1 coluna */
+  .hero-grade,
+  .listas-grade,
+  .charts-grade,
+  .mini-grade {
+    grid-template-columns: 1fr;
+  }
+
+  .cabecalho-acoes {
+    flex-wrap: wrap;
+  }
+
+  .perfil-chip-sub {
+    display: none;
+  }
+
+  /* Dashboard: grupos de estatística (Contas do Mês, Patrimônio) trocam o
+     grid de blocos por uma lista simples — mesmo modelo visual de
+     "Próximos Vencimentos"/"Metas em Andamento", só ícone + rótulo + valor
+     numa linha, sem perder nenhuma informação (mesmos dados, só reorganizados) */
+  .stats-tile-grade {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* .stat-tile some com 4 filhos irmãos (ícone, rótulo, valor, rodape) — em
+     vez de flex-row (que jogaria os 4 lado a lado), usa grid pra manter o
+     ícone à esquerda com o texto empilhado ao lado, igual ao .item-lista-rica */
+  .stat-tile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0.65rem 0;
+  }
+
+  .stat-tile + .stat-tile {
+    border-top: 1px solid var(--cor-borda);
+  }
+
+  .stat-tile::before,
+  .stat-tile::after {
+    display: none;
+  }
+
+  .stat-tile .stat-icone {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    margin-bottom: 0;
+    align-self: center;
+  }
+
+  .stat-tile .stat-rotulo {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .stat-tile .stat-valor {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .stat-tile .stat-rodape {
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .stats-grade,
+  .form-grade {
+    grid-template-columns: 1fr;
+  }
+
+  .cabecalho-dashboard .cabecalho-acoes {
+    width: 100%;
+  }
+
+  .seletor-periodo span {
+    font-size: 0.8rem;
   }
 }

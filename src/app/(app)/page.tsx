@@ -1,14 +1,14 @@
 import Link from "next/link";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { getDashboardData } from "@/lib/dashboard";
 import { formatCurrency, formatDate, parseMesParam, formatMesParam, diasAte } from "@/lib/format";
 import {
-  GraficoFluxoCaixa,
+  GraficoGastoMensal,
   GraficoGastosPorCategoria,
   BarraHorizontal,
   AnelProgresso,
 } from "@/components/charts";
 import { NotificacoesVencimento } from "@/components/notificacoes";
-import { obterUsuarioAtual } from "@/lib/auth";
 import {
   IconArrowUpRight,
   IconCheckCircle,
@@ -21,7 +21,6 @@ import {
   IconPlus,
   IconChevronLeft,
   IconChevronRight,
-  IconEngrenagem,
   IconWallet,
 } from "@/components/icons";
 
@@ -34,6 +33,8 @@ function StatCard({
   icon,
   iconTone,
   tone,
+  dentroDeCaixa,
+  href,
 }: {
   label: string;
   value: string;
@@ -41,18 +42,31 @@ function StatCard({
   icon: React.ReactNode;
   iconTone: "dourado" | "sucesso" | "alerta" | "perigo" | "info";
   tone?: "positive" | "negative";
+  dentroDeCaixa?: boolean;
+  href?: string;
 }) {
   const toneClasse =
     tone === "positive" ? "stat-positivo" : tone === "negative" ? "stat-negativo" : "";
+  const className = dentroDeCaixa ? "stat-tile" : "cartao";
 
-  return (
-    <div className="cartao">
+  const conteudo = (
+    <>
       <span className={`stat-icone stat-icone-${iconTone}`}>{icon}</span>
       <p className="stat-rotulo">{label}</p>
       <p className={`stat-valor ${toneClasse}`}>{value}</p>
       {subtitle && <p className="stat-rodape">{subtitle}</p>}
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {conteudo}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{conteudo}</div>;
 }
 
 function MiniTile({
@@ -61,23 +75,35 @@ function MiniTile({
   icon,
   iconTone,
   delta,
+  href,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   iconTone: "dourado" | "sucesso" | "alerta" | "perigo" | "info";
   delta?: string;
+  href?: string;
 }) {
-  return (
-    <div className="mini-tile">
+  const conteudo = (
+    <>
       <span className={`mini-tile-icone stat-icone-${iconTone}`}>{icon}</span>
       <p className="mini-tile-valor">{value}</p>
       <div className="mini-tile-rodape">
         <p className="mini-tile-rotulo">{label}</p>
         {delta && <span className="selo-delta selo-delta-positivo">{delta}</span>}
       </div>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="mini-tile">
+        {conteudo}
+      </Link>
+    );
+  }
+
+  return <div className="mini-tile">{conteudo}</div>;
 }
 
 export default async function DashboardPage({
@@ -85,9 +111,10 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ mes?: string }>;
 }) {
+  const usuario = await exigirUsuarioAtual();
   const params = await searchParams;
   const mesReferencia = parseMesParam(params.mes);
-  const [data, usuario] = await Promise.all([getDashboardData(mesReferencia), obterUsuarioAtual()]);
+  const data = await getDashboardData(usuario.familiaId, mesReferencia);
 
   const mesLabelBruto = mesReferencia.toLocaleDateString("pt-BR", {
     month: "long",
@@ -141,10 +168,6 @@ export default async function DashboardPage({
             {totalAlertas > 0 && <span className="sino-contador">{totalAlertas}</span>}
           </a>
 
-          <Link href="/configuracoes" className="botao-icone" title="Configurações" aria-label="Configurações">
-            <IconEngrenagem size={18} />
-          </Link>
-
           <details style={{ position: "relative" }}>
             <summary className="botao-dourado" style={{ listStyle: "none", cursor: "pointer" }}>
               <IconPlus size={16} />
@@ -178,14 +201,6 @@ export default async function DashboardPage({
               </Link>
             </div>
           </details>
-
-          <div className="perfil-chip">
-            <span className="perfil-chip-avatar">👋</span>
-            <div>
-              <p className="perfil-chip-nome">{usuario?.nome ?? "Sua família"}</p>
-              <p className="perfil-chip-sub">{usuario?.email ?? "Uso local"}</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -323,6 +338,7 @@ export default async function DashboardPage({
               value={formatCurrency(data.rendaPrevista)}
               icon={<IconArrowUpRight size={16} />}
               iconTone="dourado"
+              href="/receitas"
             />
             <MiniTile
               label="Recebido"
@@ -330,103 +346,111 @@ export default async function DashboardPage({
               icon={<IconCheckCircle size={16} />}
               iconTone="sucesso"
               delta={`${percentualRecebido}%`}
+              href="/receitas"
             />
             <MiniTile
               label="Contas Pagas"
               value={formatCurrency(data.totalPago)}
               icon={<IconCheckCircle size={16} />}
               iconTone="sucesso"
+              href="/contas"
             />
           </div>
         </div>
       </div>
 
-      <div className="stats-grade">
-        <StatCard
-          label="Total de Contas"
-          value={formatCurrency(data.totalContas)}
-          subtitle={`${data.contasPagasCount + data.contasPendentesCount + data.contasAtrasadasCount} contas`}
-          icon={<IconFileText size={18} />}
-          iconTone="info"
-        />
-        <StatCard
-          label="Contas Pendentes"
-          value={formatCurrency(data.totalPendente - data.totalAtrasado)}
-          subtitle={`${data.contasPendentesCount} contas`}
-          icon={<IconClock size={18} />}
-          iconTone="alerta"
-        />
-        <StatCard
-          label="Contas Atrasadas"
-          value={formatCurrency(data.totalAtrasado)}
-          subtitle={`${data.contasAtrasadasCount} contas`}
-          icon={<IconAlertTriangle size={18} />}
-          iconTone="perigo"
-          tone={data.totalAtrasado > 0 ? "negative" : undefined}
-        />
-        <StatCard
-          label="Metas"
-          value={formatCurrency(data.totalGuardadoMetas)}
-          subtitle="Reservado"
-          icon={<IconTarget size={18} />}
-          iconTone="dourado"
-        />
-        <StatCard
-          label="Prioridades"
-          value={formatCurrency(data.totalGuardadoPrioridades)}
-          subtitle="Reservado"
-          icon={<IconClock size={18} />}
-          iconTone="alerta"
-        />
-        <StatCard
-          label="Dívidas"
-          value={formatCurrency(data.totalDividasRestante)}
-          subtitle="Total devido"
-          icon={<IconAlertTriangle size={18} />}
-          iconTone="perigo"
-        />
-        <StatCard
-          label="Investimentos"
-          value={formatCurrency(data.totalInvestimentos)}
-          subtitle="Total investido"
-          icon={<IconWallet size={18} />}
-          iconTone="info"
-        />
-        <StatCard
-          label="Previsão de Saldo"
-          value={formatCurrency(data.saldoPrevistoFimDoMes)}
-          subtitle="Final do mês"
-          icon={<IconTrendingUp size={18} />}
-          iconTone="dourado"
-          tone={data.saldoPrevistoFimDoMes >= 0 ? "positive" : "negative"}
-        />
+      <div className="cartao" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <h2 className="lista-titulo">Contas do Mês</h2>
+        <div className="stats-tile-grade">
+          <StatCard
+            dentroDeCaixa
+            label="Total de Contas"
+            value={formatCurrency(data.totalContas)}
+            subtitle={`${data.contasPagasCount + data.contasPendentesCount + data.contasAtrasadasCount} contas`}
+            icon={<IconFileText size={18} />}
+            iconTone="info"
+            href="/contas"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Contas Pendentes"
+            value={formatCurrency(data.totalPendente - data.totalAtrasado)}
+            subtitle={`${data.contasPendentesCount} contas`}
+            icon={<IconClock size={18} />}
+            iconTone="alerta"
+            href="/contas"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Contas Atrasadas"
+            value={formatCurrency(data.totalAtrasado)}
+            subtitle={`${data.contasAtrasadasCount} contas`}
+            icon={<IconAlertTriangle size={18} />}
+            iconTone="perigo"
+            tone={data.totalAtrasado > 0 ? "negative" : undefined}
+            href="/contas"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Metas"
+            value={formatCurrency(data.totalGuardadoMetas)}
+            subtitle="Reservado"
+            icon={<IconTarget size={18} />}
+            iconTone="dourado"
+            href="/metas"
+          />
+        </div>
+      </div>
+
+      <div className="cartao" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        <h2 className="lista-titulo">Patrimônio</h2>
+        <div className="stats-tile-grade">
+          <StatCard
+            dentroDeCaixa
+            label="Prioridades"
+            value={formatCurrency(data.totalGuardadoPrioridades)}
+            subtitle="Reservado"
+            icon={<IconClock size={18} />}
+            iconTone="alerta"
+            href="/prioridades"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Dívidas"
+            value={formatCurrency(data.totalDividasRestante)}
+            subtitle="Total devido"
+            icon={<IconAlertTriangle size={18} />}
+            iconTone="perigo"
+            tone={data.totalDividasRestante > 0 ? "negative" : undefined}
+            href="/dividas"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Investimentos"
+            value={formatCurrency(data.totalInvestimentos)}
+            subtitle="Total investido"
+            icon={<IconWallet size={18} />}
+            iconTone="info"
+            href="/investimentos"
+          />
+          <StatCard
+            dentroDeCaixa
+            label="Previsão de Saldo"
+            value={formatCurrency(data.saldoPrevistoFimDoMes)}
+            subtitle="Final do mês"
+            icon={<IconTrendingUp size={18} />}
+            iconTone="dourado"
+            tone={data.saldoPrevistoFimDoMes < 0 ? "negative" : undefined}
+            href="/relatorios"
+          />
+        </div>
       </div>
 
       <div className="cartao">
         <div className="grafico-cabecalho">
-          <h2 className="grafico-titulo">Fluxo de Caixa do Mês</h2>
-          <div className="grafico-legenda">
-            <span className="legenda-item">
-              <span className="legenda-marcador-linha" style={{ background: "#b6b5bf" }} />
-              Receitas
-            </span>
-            <span className="legenda-item">
-              <span
-                className="legenda-marcador-linha"
-                style={{ background: "#726f7d" }}
-              />
-              Despesas
-            </span>
-            <span className="legenda-item">
-              <span
-                className="legenda-marcador-linha"
-                style={{ background: "#f5f5f6" }}
-              />
-              Saldo
-            </span>
-          </div>
+          <h2 className="grafico-titulo">Quanto gastei no mês</h2>
         </div>
-        <GraficoFluxoCaixa pontos={data.pontosFluxo} />
+        <GraficoGastoMensal pontos={data.pontosFluxo.map((p) => ({ dia: p.dia, valor: p.despesas }))} />
       </div>
 
       <div className="listas-grade">
@@ -441,7 +465,11 @@ export default async function DashboardPage({
             <p className="item-vazio">Nenhuma conta vencendo nos próximos 7 dias.</p>
           )}
           {proximosVencimentos.map((conta) => (
-            <div key={conta.id} className="item-lista-rica item-lista-rica-com-barra">
+            <Link
+              key={conta.id}
+              href="/contas"
+              className="item-lista-rica item-lista-rica-com-barra"
+            >
               <div className="item-lista-rica-linha">
                 <span className="item-icone">
                   <IconFileText size={18} />
@@ -458,7 +486,7 @@ export default async function DashboardPage({
                 valor={conta.valor}
                 max={Math.max(...proximosVencimentos.map((c) => c.valor))}
               />
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -482,7 +510,11 @@ export default async function DashboardPage({
           {data.metasEmAndamento.map((meta) => {
             const progresso = (meta.valorGuardado / meta.valorEstimado) * 100;
             return (
-              <div key={meta.id} className="meta-progresso-item meta-progresso-item-anel">
+              <Link
+                key={meta.id}
+                href={`/metas/${meta.id}`}
+                className="meta-progresso-item meta-progresso-item-anel"
+              >
                 <AnelProgresso percentual={progresso} />
                 <div className="meta-progresso-corpo">
                   <span className="meta-progresso-nome">{meta.nome}</span>
@@ -490,7 +522,7 @@ export default async function DashboardPage({
                     {formatCurrency(meta.valorGuardado)} / {formatCurrency(meta.valorEstimado)}
                   </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

@@ -2,11 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { parseCurrencyInput, parseDateInput } from "@/lib/format";
 
 export async function criarConta(formData: FormData) {
+  const usuario = await exigirUsuarioAtual();
+
   await prisma.contaMes.create({
     data: {
+      familiaId: usuario.familiaId,
       nome: String(formData.get("nome")),
       categoria: String(formData.get("categoria")),
       subcategoria: String(formData.get("subcategoria") || "") || null,
@@ -25,10 +29,11 @@ export async function criarConta(formData: FormData) {
 }
 
 export async function editarConta(formData: FormData) {
+  const usuario = await exigirUsuarioAtual();
   const id = String(formData.get("id"));
 
   await prisma.contaMes.update({
-    where: { id },
+    where: { id, familiaId: usuario.familiaId },
     data: {
       nome: String(formData.get("nome")),
       categoria: String(formData.get("categoria")),
@@ -42,10 +47,11 @@ export async function editarConta(formData: FormData) {
 }
 
 export async function marcarComoPaga(formData: FormData) {
+  const usuario = await exigirUsuarioAtual();
   const id = String(formData.get("id"));
 
   await prisma.contaMes.update({
-    where: { id },
+    where: { id, familiaId: usuario.familiaId },
     data: {
       status: "PAGA",
       dataPagamento: new Date(),
@@ -57,8 +63,9 @@ export async function marcarComoPaga(formData: FormData) {
 }
 
 export async function excluirConta(formData: FormData) {
+  const usuario = await exigirUsuarioAtual();
   const id = String(formData.get("id"));
-  await prisma.contaMes.delete({ where: { id } });
+  await prisma.contaMes.delete({ where: { id, familiaId: usuario.familiaId } });
   revalidatePath("/contas");
   revalidatePath("/");
 }

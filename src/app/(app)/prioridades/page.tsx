@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { criarPrioridade, aportarPrioridade, excluirPrioridade } from "./actions";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
@@ -45,13 +47,17 @@ function mesesRestantes(mesPlanejado: Date): number {
 }
 
 export default async function PrioridadesPage() {
+  const usuario = await exigirUsuarioAtual();
   const [itens, membros] = await Promise.all([
     prisma.necessidade.findMany({
-      where: { status: { not: "CANCELADA" } },
+      where: { familiaId: usuario.familiaId, status: { not: "CANCELADA" } },
       orderBy: [{ prioridade: "asc" }, { mesPlanejado: "asc" }],
       include: { familiaMembro: true },
     }),
-    prisma.familiaMembro.findMany({ orderBy: { nome: "asc" } }),
+    prisma.familiaMembro.findMany({
+      where: { familiaId: usuario.familiaId },
+      orderBy: { nome: "asc" },
+    }),
   ]);
 
   return (
@@ -64,6 +70,7 @@ export default async function PrioridadesPage() {
       </div>
 
       <form action={criarPrioridade} className="cartao form-grade">
+        <InfoIcone texto="Cadastre aqui uma necessidade urgente e mais pontual (tênis, mamadeira, material escolar), diferente de uma meta maior. Digite o nome de qualquer pessoa, mesmo que não esteja cadastrada em Família e Filhos." />
         <input name="item" placeholder="Item (ex: Tênis)" required className="campo" />
         <input
           name="pessoaNome"

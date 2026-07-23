@@ -1,19 +1,23 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { GraficoEvolucaoMensal, GraficoGastosPorCategoria } from "@/components/charts";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIA_COR: Record<string, string> = {
-  Moradia: "var(--grafico-1)",
-  Alimentação: "var(--grafico-2)",
-  Transporte: "var(--grafico-3)",
-  Saúde: "var(--grafico-4)",
-  Assinaturas: "var(--grafico-5)",
-  "Trabalho e estudos": "var(--grafico-6)",
-};
+/* Rampa dourada ordinal — maior gasto recebe o tom mais forte, decrescendo
+   por posição no ranking (não por identidade da categoria). Ver skill dataviz. */
+const RAMPA_DOURADA = [
+  "var(--grafico-dourado-1)",
+  "var(--grafico-dourado-2)",
+  "var(--grafico-dourado-3)",
+  "var(--grafico-dourado-4)",
+  "var(--grafico-dourado-5)",
+  "var(--grafico-dourado-6)",
+];
 
 const MESES_LABEL = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -22,6 +26,7 @@ export default async function RelatoriosPage({
 }: {
   searchParams: Promise<{ ano?: string }>;
 }) {
+  const usuario = await exigirUsuarioAtual();
   const params = await searchParams;
   const anoAtual = new Date().getUTCFullYear();
   const ano = params.ano && /^\d{4}$/.test(params.ano) ? Number(params.ano) : anoAtual;
@@ -31,12 +36,22 @@ export default async function RelatoriosPage({
 
   const [receitasRecebidas, contasPagas, contasDoAno] = await Promise.all([
     prisma.receita.findMany({
-      where: { status: "RECEBIDO", dataRecebimento: { gte: inicioAno, lt: fimAno } },
+      where: {
+        familiaId: usuario.familiaId,
+        status: "RECEBIDO",
+        dataRecebimento: { gte: inicioAno, lt: fimAno },
+      },
     }),
     prisma.contaMes.findMany({
-      where: { status: "PAGA", dataPagamento: { gte: inicioAno, lt: fimAno } },
+      where: {
+        familiaId: usuario.familiaId,
+        status: "PAGA",
+        dataPagamento: { gte: inicioAno, lt: fimAno },
+      },
     }),
-    prisma.contaMes.findMany({ where: { vencimento: { gte: inicioAno, lt: fimAno } } }),
+    prisma.contaMes.findMany({
+      where: { familiaId: usuario.familiaId, vencimento: { gte: inicioAno, lt: fimAno } },
+    }),
   ]);
 
   const pontosMensais = Array.from({ length: 12 }, (_, mes) => {
@@ -63,9 +78,12 @@ export default async function RelatoriosPage({
       categoria,
       valor,
       percentual: totalContasAno > 0 ? (valor / totalContasAno) * 100 : 0,
-      cor: CATEGORIA_COR[categoria] ?? "var(--cor-texto-suave)",
     }))
-    .sort((a, b) => b.valor - a.valor);
+    .sort((a, b) => b.valor - a.valor)
+    .map((item, indice) => ({
+      ...item,
+      cor: RAMPA_DOURADA[indice] ?? RAMPA_DOURADA[RAMPA_DOURADA.length - 1],
+    }));
 
   return (
     <div className="pilha">
@@ -103,6 +121,7 @@ export default async function RelatoriosPage({
       </div>
 
       <div className="cartao">
+        <InfoIcone texto="Compara, mês a mês, quanto entrou (receitas recebidas) e quanto saiu (contas pagas) no ano selecionado." />
         <div className="grafico-cabecalho">
           <h2 className="grafico-titulo">Receitas x Despesas por mês</h2>
           <div className="grafico-legenda">
@@ -120,6 +139,7 @@ export default async function RelatoriosPage({
       </div>
 
       <div className="cartao">
+        <InfoIcone texto="Soma de todas as contas do ano, agrupadas por categoria (Moradia, Alimentação, etc.), pra ver onde o dinheiro mais foi." />
         <div className="grafico-cabecalho">
           <h2 className="grafico-titulo">Gastos por categoria no ano</h2>
         </div>

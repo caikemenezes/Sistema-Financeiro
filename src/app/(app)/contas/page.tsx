@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatCurrency, toDateInputValue } from "@/lib/format";
+import { exigirUsuarioAtual } from "@/lib/auth";
+import { formatCurrency, toDateInputValue, inicioDoDiaUTC } from "@/lib/format";
 import { getDashboardData } from "@/lib/dashboard";
 import { BarraHorizontal } from "@/components/charts";
 import { IconClock, IconCheckCircle, IconWallet, IconAlertTriangle } from "@/components/icons";
+import { InfoIcone } from "@/components/info-icone";
 import { criarConta, editarConta, marcarComoPaga, excluirConta } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,7 @@ const CATEGORIAS = [
 ];
 
 function statusExibido(conta: { status: string; vencimento: Date }) {
-  if (conta.status === "PENDENTE" && conta.vencimento < new Date()) {
+  if (conta.status === "PENDENTE" && conta.vencimento < inicioDoDiaUTC()) {
     return "ATRASADA";
   }
   return conta.status;
@@ -49,12 +51,16 @@ export default async function ContasPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const usuario = await exigirUsuarioAtual();
   const params = await searchParams;
   const filtroAtivo = FILTROS.some((f) => f.valor === params.status) ? params.status! : "todas";
 
   const [contasBrutas, dashboardData] = await Promise.all([
-    prisma.contaMes.findMany({ orderBy: { vencimento: "asc" } }),
-    getDashboardData(),
+    prisma.contaMes.findMany({
+      where: { familiaId: usuario.familiaId },
+      orderBy: { vencimento: "asc" },
+    }),
+    getDashboardData(usuario.familiaId),
   ]);
 
   const contas = contasBrutas.map((conta) => ({ ...conta, statusExibido: statusExibido(conta) }));
@@ -87,6 +93,7 @@ export default async function ContasPage({
       </div>
 
       <form action={criarConta} className="cartao form-grade">
+        <InfoIcone texto="Cadastre aqui uma conta que precisa ser paga todo mês (ou uma vez), como aluguel, água, luz ou assinaturas. Depois de criada, ela aparece na tabela abaixo pra você marcar como paga." />
         <input name="nome" placeholder="Nome (ex: Aluguel)" required className="campo" />
         <select name="categoria" required defaultValue="" className="campo">
           <option value="" disabled>
@@ -263,6 +270,7 @@ export default async function ContasPage({
       </div>
 
       <div className="cartao pilha-pequena">
+        <InfoIcone texto="Mostra quanto ainda falta pagar, quanto já foi pago e quanto você tem em caixa neste mês. Os valores mudam conforme o filtro de status selecionado acima." />
         <h2 className="cartao-titulo">Resumo de pagamentos</h2>
 
         {filtroAtivo !== "paga" && (

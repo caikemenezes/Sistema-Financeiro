@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { inicioDoDiaUTC } from "@/lib/format";
 
 function mesAtualUTC(referencia: Date) {
   const inicio = new Date(Date.UTC(referencia.getUTCFullYear(), referencia.getUTCMonth(), 1));
@@ -6,18 +7,20 @@ function mesAtualUTC(referencia: Date) {
   return { inicio, fim };
 }
 
-const CATEGORIA_COR: Record<string, string> = {
-  Moradia: "var(--grafico-1)",
-  Alimentação: "var(--grafico-2)",
-  Transporte: "var(--grafico-3)",
-  Saúde: "var(--grafico-4)",
-  Assinaturas: "var(--grafico-5)",
-  "Trabalho e estudos": "var(--grafico-6)",
-};
+/* Rampa dourada ordinal — maior gasto recebe o tom mais forte, decrescendo
+   por posição no ranking (não por identidade da categoria). Ver skill dataviz. */
+const RAMPA_DOURADA = [
+  "var(--grafico-dourado-1)",
+  "var(--grafico-dourado-2)",
+  "var(--grafico-dourado-3)",
+  "var(--grafico-dourado-4)",
+  "var(--grafico-dourado-5)",
+  "var(--grafico-dourado-6)",
+];
 
-export async function getDashboardData(mesReferencia: Date = new Date()) {
+export async function getDashboardData(familiaId: string, mesReferencia: Date = new Date()) {
   const { inicio, fim } = mesAtualUTC(mesReferencia);
-  const hoje = new Date();
+  const hoje = inicioDoDiaUTC();
   const em7dias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const [
@@ -30,23 +33,23 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
     receitasRecebidasNoMes,
     contasPagasNoMes,
   ] = await Promise.all([
-    prisma.receita.findMany({ where: { dataPrevista: { gte: inicio, lt: fim } } }),
-    prisma.contaMes.findMany({ where: { vencimento: { gte: inicio, lt: fim } } }),
+    prisma.receita.findMany({ where: { familiaId, dataPrevista: { gte: inicio, lt: fim } } }),
+    prisma.contaMes.findMany({ where: { familiaId, vencimento: { gte: inicio, lt: fim } } }),
     prisma.meta.findMany({
-      where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+      where: { familiaId, status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
       orderBy: [{ prioridade: "asc" }, { createdAt: "desc" }],
       include: { familiaMembro: true },
     }),
     prisma.necessidade.findMany({
-      where: { status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
+      where: { familiaId, status: { notIn: ["CONCLUIDA", "CANCELADA"] } },
     }),
-    prisma.divida.findMany({ where: { status: { not: "QUITADA" } } }),
-    prisma.investimento.findMany(),
+    prisma.divida.findMany({ where: { familiaId, status: { not: "QUITADA" } } }),
+    prisma.investimento.findMany({ where: { familiaId } }),
     prisma.receita.findMany({
-      where: { status: "RECEBIDO", dataRecebimento: { gte: inicio, lt: fim } },
+      where: { familiaId, status: "RECEBIDO", dataRecebimento: { gte: inicio, lt: fim } },
     }),
     prisma.contaMes.findMany({
-      where: { status: "PAGA", dataPagamento: { gte: inicio, lt: fim } },
+      where: { familiaId, status: "PAGA", dataPagamento: { gte: inicio, lt: fim } },
     }),
   ]);
 
@@ -82,22 +85,23 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
     (d) => d.vencimento && d.vencimento >= hoje && d.vencimento <= em7dias
   );
   const necessidadesDoMes = await prisma.necessidade.findMany({
-    where: { mesPlanejado: { gte: inicio, lt: fim }, status: { not: "CONCLUIDA" } },
+    where: { familiaId, mesPlanejado: { gte: inicio, lt: fim }, status: { not: "CONCLUIDA" } },
     include: { familiaMembro: true },
   });
 
   // Lembretes de vencimento (independem do mês sendo visualizado no dashboard)
-  const inicioHojeUTC = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()));
-  const em3DiasUTC = new Date(inicioHojeUTC.getTime() + 3 * 24 * 60 * 60 * 1000);
-  const fimJanelaLembretes = new Date(inicioHojeUTC.getTime() + 4 * 24 * 60 * 60 * 1000);
+  // "hoje" já está normalizado pra meia-noite UTC lá em cima.
+  const em3DiasUTC = new Date(hoje.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const fimJanelaLembretes = new Date(hoje.getTime() + 4 * 24 * 60 * 60 * 1000);
   const contasParaLembrete = await prisma.contaMes.findMany({
     where: {
+      familiaId,
       status: "PENDENTE",
-      vencimento: { gte: inicioHojeUTC, lt: fimJanelaLembretes },
+      vencimento: { gte: hoje, lt: fimJanelaLembretes },
     },
   });
   const contasVencendoHoje = contasParaLembrete.filter(
-    (c) => c.vencimento.getTime() === inicioHojeUTC.getTime()
+    (c) => c.vencimento.getTime() === hoje.getTime()
   );
   const contasVencendoEm3Dias = contasParaLembrete.filter(
     (c) => c.vencimento.getTime() === em3DiasUTC.getTime()
@@ -139,9 +143,12 @@ export async function getDashboardData(mesReferencia: Date = new Date()) {
       categoria,
       valor,
       percentual: totalContas > 0 ? (valor / totalContas) * 100 : 0,
-      cor: CATEGORIA_COR[categoria] ?? "var(--cor-texto-suave)",
     }))
-    .sort((a, b) => b.valor - a.valor);
+    .sort((a, b) => b.valor - a.valor)
+    .map((item, indice) => ({
+      ...item,
+      cor: RAMPA_DOURADA[indice] ?? RAMPA_DOURADA[RAMPA_DOURADA.length - 1],
+    }));
 
   const metasEmAndamento = metasAtivas.slice(0, 3);
 

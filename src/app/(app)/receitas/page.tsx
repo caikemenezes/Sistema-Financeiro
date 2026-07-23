@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { exigirUsuarioAtual } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { criarReceita, marcarComoRecebida, excluirReceita } from "./actions";
+import { InfoIcone } from "@/components/info-icone";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,9 @@ const TIPOS = [
 ];
 
 export default async function ReceitasPage() {
+  const usuario = await exigirUsuarioAtual();
   const receitas = await prisma.receita.findMany({
+    where: { familiaId: usuario.familiaId },
     orderBy: { dataPrevista: "asc" },
   });
 
@@ -29,6 +33,7 @@ export default async function ReceitasPage() {
       </div>
 
       <form action={criarReceita} className="cartao form-grade">
+        <InfoIcone texto="Cadastre aqui uma entrada de dinheiro prevista (salário, freelance, etc.). Depois marque como recebida quando o valor cair na conta — isso é o que alimenta a Renda do Mês no Dashboard." />
         <input name="nome" placeholder="Nome" required className="campo" />
         <select name="tipo" required defaultValue="" className="campo">
           <option value="" disabled>

@@ -146,6 +146,16 @@ export function IconEngrenagem({ size = 20, className }: IconProps) {
   );
 }
 
+export function IconInfo({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="11" x2="12" y2="16" />
+      <line x1="12" y1="7.5" x2="12.01" y2="7.5" />
+    </svg>
+  );
+}
+
 export function IconHelpCircle({ size = 20, className }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
@@ -214,6 +224,44 @@ export function IconWallet({ size = 20, className }: IconProps) {
       <rect x="2" y="6" width="20" height="14" rx="2" />
       <path d="M2 10h20" />
       <circle cx="17" cy="14.5" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconLogOut({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+export function IconChevronsLeft({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <polyline points="11 17 6 12 11 7" />
+      <polyline points="18 17 13 12 18 7" />
+    </svg>
+  );
+}
+
+export function IconMenu({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="3" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+export function IconX({ size = 20, className }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
